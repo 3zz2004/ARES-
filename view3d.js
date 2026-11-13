@@ -1,0 +1,86 @@
+// 3D view: the same game, seen over the real terrain. Nothing here changes the rules — it only draws.
+// The ground is a mesh built from the HiRISE elevation model; the painted board is draped over it; a second draped
+// layer carries everything the 2D view draws on the ground (route, rover path, glows, layers); characters and
+// objects stand on the surface as billboards.
+import * as THREE from "./lib/three.module.min.js";
+
+const BOARD = 640;                           // board units across (16 per tile) — same units as the 2D view
+export const EXAG = 3.5;                     // vertical exaggeration, so 46 m of real relief reads on screen
+let R, scene, cam, H, HN, hScale, ground, veil, veilTex, spr = {}, ready3 = false, look = new THREE.Vector3(320, 0, 320), W = 960;
+const v = new THREE.Vector3();
+
+export const ready = () => ready3;
+
+export function heightAt(bx, by) {           // ground height in board units at a board position (bilinear)
+  const u = Math.max(0, Math.min(HN - 1.001, (bx / BOARD) * (HN - 1))), w = Math.max(0, Math.min(HN - 1.001, (by / BOARD) * (HN - 1)));
+  const x0 = u | 0, y0 = w | 0, fx = u - x0, fy = w - y0, i = y0 * HN + x0;
+  return ((H[i] * (1 - fx) + H[i + 1] * fx) * (1 - fy) + (H[i + HN] * (1 - fx) + H[i + HN + 1] * fx) * fy) * hScale;
+}
+
+function sprite(image, w) {                  // a billboard standing on its bottom edge, `w` board units wide
+  const tex = new THREE.Texture(image); tex.colorSpace = THREE.SRGBColorSpace; tex.needsUpdate = true;
+  const s = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, alphaTest: 0.08, depthWrite: false, fog: false }));
+  s.center.set(0.5, 0); s.scale.set(w, (image.height / image.width) * w, 1); scene.add(s); return s;
+}
+function sheetSprite(sheet, scale) {         // a billboard that shows one frame of a character sheet
+  const s = sprite(sheet.img, 1), [cw, ch] = sheet.cell;
+  s.scale.set(cw * scale, ch * scale, 1); s.userData = { sheet };
+  return s;
+}
+function frame(s, anim, f, flip) {
+  const { sheet } = s.userData, a = sheet.anims[anim], [cw, ch] = sheet.cell, iw = sheet.img.width, ih = sheet.img.height, col = f % a.n, t = s.material.map;
+  t.repeat.set((flip ? -cw : cw) / iw, ch / ih); t.offset.set(((flip ? col + 1 : col) * cw) / iw, 1 - ((a.row + 1) * ch) / ih);
+}
+const place = (s, bx, by, lift = 0) => s.position.set(bx, heightAt(bx, by) + lift, by);
+
+export async function init(T, canvas, art, veilCanvas) {
+  const hm = T.heightmap, buf = await (await fetch(hm.file)).arrayBuffer();
+  H = new Uint16Array(buf); HN = hm.size; hScale = ((hm.max_m - hm.min_m) / 65535) * (BOARD / (T.cell_m * T.cols)) * EXAG;
+  R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); R.setPixelRatio(1); R.setSize(W, W, false);
+  scene = new THREE.Scene(); scene.fog = new THREE.Fog(0xd08458, 520, 1700);
+  cam = new THREE.PerspectiveCamera(38, 1, 2, 4000); cam.position.set(320, 500, 900);
+
+  const geo = new THREE.PlaneGeometry(BOARD, BOARD, HN - 1, HN - 1); geo.rotateX(-Math.PI / 2); geo.translate(BOARD / 2, 0, BOARD / 2);
+  const pos = geo.attributes.position; for (let i = 0; i < pos.count; i++) pos.setY(i, H[i] * hScale);
+  pos.needsUpdate = true;
+  const small = Object.assign(document.createElement("canvas"), { width: 2048, height: 2048 }); small.getContext("2d").drawImage(art, 0, 0, 2048, 2048);
+  const map = new THREE.CanvasTexture(small); map.colorSpace = THREE.SRGBColorSpace; map.anisotropy = R.capabilities.getMaxAnisotropy();
+  ground = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map })); scene.add(ground);   // light is already painted in from the same elevation data
+  veilTex = new THREE.CanvasTexture(veilCanvas); veilTex.colorSpace = THREE.SRGBColorSpace;
+  veil = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: veilTex, transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 }));
+  veil.renderOrder = 1; scene.add(veil);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(6000, 6000), new THREE.MeshBasicMaterial({ color: 0x5a2228 })); floor.rotation.x = -Math.PI / 2; floor.position.set(320, -1, 320); scene.add(floor);
+  const wall = new THREE.MeshBasicMaterial({ color: 0x4a1c26 });                         // the cut edge of the block of terrain
+  for (const [x, z, rot] of [[320, 0, 0], [320, 640, 0], [0, 320, 1], [640, 320, 1]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(640, 2), wall); m.position.set(x, 0, z); m.rotation.y = rot * Math.PI / 2; m.material.side = THREE.DoubleSide; scene.add(m); }
+
+  spr.wreck = sprite(T.items.wreck, 46); spr.ship = sprite(T.items.ship, 46); spr.rover = sprite(T.items.rover, 26);
+  spr.tanks = [0, 1, 2, 3].map(() => sprite(T.items.tank, 10)); spr.parts = [0, 1, 2].map((k) => sprite(T.items["part" + k], k === 2 ? 20 : 15));
+  spr.ares = sheetSprite(T.ares, 0.19 * 0.85); spr.astro = sheetSprite(T.astro, 0.19);
+  [spr.ares, spr.astro].forEach((s) => (s.renderOrder = 3)); [spr.wreck, spr.ship, spr.rover, ...spr.tanks, ...spr.parts].forEach((s) => (s.renderOrder = 2));
+  ready3 = true;
+}
+
+/** Draw one frame. `g` describes where everything is, in board units (the same numbers the 2D view uses). */
+export function render(g) {
+  veilTex.needsUpdate = true;
+  const tile = (i) => [(i % g.cols) * 16 + 8, ((i / g.cols) | 0) * 16 + 8];
+  spr.wreck.visible = !g.fixed; spr.ship.visible = g.fixed; place(spr.wreck, ...tile(g.home), -2); place(spr.ship, ...tile(g.home), -2); place(spr.rover, ...tile(g.rover), -1);
+  spr.tanks.forEach((s, k) => { const t = g.tanks[k]; s.visible = !!t && !t.done; if (s.visible) place(s, ...tile(t.cell), 1 + Math.sin(g.now / 400 + k)); });
+  spr.parts.forEach((s, k) => { const p = g.parts[k]; s.visible = !p.done; if (s.visible) place(s, ...tile(p.cell), 2 + Math.sin(g.now / 350 + k) * 1.5); });
+  frame(spr.ares, g.mood, g.mf, false); place(spr.ares, g.aresX, g.aresY, g.aresLift);
+  frame(spr.astro, g.pose[0], g.pose[1], g.flip); place(spr.astro, g.ax, g.ay, g.lift);
+
+  // camera: behind and above the astronaut, or pulled back over the whole crater floor
+  const tx = g.ax, tz = g.ay, ty = heightAt(tx, tz);
+  const want = g.zoomed ? v.set(tx, ty + 78, tz + 118) : v.set(320, 520, 960);
+  cam.position.lerp(want, 0.08);
+  look.lerp(g.zoomed ? new THREE.Vector3(tx, ty + 10, tz - 6) : new THREE.Vector3(320, 0, 290), 0.1);
+  cam.lookAt(look.x + g.qx, look.y + g.qy, look.z);
+  R.render(scene, cam);
+}
+
+/** Where a point of the board lands on the 2D canvas (canvas pixels), `up` board units above the ground. */
+export function project(bx, by, up = 0) {
+  v.set(bx, heightAt(bx, by) + up, by).project(cam);
+  return [(v.x * 0.5 + 0.5) * W, (-v.y * 0.5 + 0.5) * W];
+}
