@@ -77,9 +77,6 @@ def main():
     art = Image.fromarray(np.clip(rgb, 0, 255).astype(np.uint8), "RGB")
     art.quantize(40, method=Image.MEDIANCUT, dither=Image.Dither.NONE).convert("RGB").save(os.path.join(out, "board.png"))
 
-    tone = np.array([0.66, 0.84, 1.0, 1.16])[np.minimum(3, ((0.6 * norm(hs) + 0.4 * norm(tex)) * 4).astype(int))]
-    band = np.digitize(zs, np.quantile(zs, np.linspace(0, 1, len(BANDS) + 1)[1:-1]))
-    Image.fromarray(np.clip(np.array(BANDS, dtype=np.float32)[band] * tone[..., None], 0, 255).astype(np.uint8), "RGB").save(os.path.join(out, "height.png"))
 
     pack = {
         "site": "Jezero Crater — Perseverance landing area",
@@ -92,6 +89,25 @@ def main():
         "elev_range_m": [round(float(z.min()), 1), round(float(z.max()), 1)],
         "palette": ["#%02x%02x%02x" % c for c in BANDS],
     }
+    # --- the data layers as clean maps: smooth colour straight from the data, over the real relief, with no texture ---
+    Q = 640
+    up = lambda arr: np.asarray(Image.fromarray(arr.astype(np.float32), "F").resize((Q, Q), Image.BICUBIC), dtype=np.float32)
+    relief = 0.62 + 0.5 * norm(up(shade), 1, 99)                            # hillshade from the DTM, as a brightness
+    def ramp_img(v, colours, name, lines=None):
+        rgb_ = ramp(colours, v) * relief[..., None]
+        if lines is not None: rgb_ = rgb_ * (1 - 0.38 * lines[..., None])
+        Image.fromarray(np.clip(rgb_, 0, 255).astype(np.uint8), "RGB").save(os.path.join(out, name))
+    zq = up(z); zn = (zq - zq.min()) / (zq.max() - zq.min())
+    step = 5.0; frac = (zq / step) % 1.0; cgy, cgx = np.gradient(zq)       # a contour every 5 m, about one pixel wide whatever the slope
+    contour = (np.minimum(frac, 1 - frac) * step < 0.8 * np.maximum(np.hypot(cgx, cgy), 1e-3)).astype(np.float32) * (np.hypot(cgx, cgy) > 0.012)
+    ramp_img(zn, [(74, 42, 154), (160, 40, 110), (200, 58, 58), (232, 112, 42), (242, 168, 58), (251, 226, 176)], "height.png", contour)
+    sq = up(np.array(dem["slope_deg"], dtype=np.float32))
+    sv = np.clip(np.where(sq < 5, sq / 5 * 0.25, np.where(sq < 10, 0.25 + (sq - 5) / 5 * 0.25, np.where(sq < 15, 0.5 + (sq - 10) / 5 * 0.25, 0.75 + (sq - 15) / 10 * 0.25))), 0, 1)
+    ramp_img(sv, [(46, 150, 96), (120, 200, 96), (240, 214, 70), (244, 140, 40), (226, 44, 60)], "slope.png")
+    _, thq = mosaic(THEMIS, 9, b, Q)
+    tq = np.asarray(thq.resize((Q, Q), Image.BICUBIC), dtype=np.float32); tq = (tq - tq.min()) / (tq.max() - tq.min())
+    ramp_img(tq, [(40, 44, 150), (40, 140, 168), (126, 96, 150), (222, 128, 52), (255, 84, 40)], "heat.png")
+
     # real heightmap for the 3D view: the DEM at 8 m, as 16-bit values between its lowest and highest point
     hn = 200; hz = z.reshape(hn, n // hn, hn, n // hn).mean(axis=(1, 3)); h_lo, h_hi = float(hz.min()), float(hz.max())
     open(os.path.join(out, "height.bin"), "wb").write(np.round((hz - h_lo) / (h_hi - h_lo) * 65535).astype("<u2").tobytes())

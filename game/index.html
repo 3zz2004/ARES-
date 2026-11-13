@@ -18,6 +18,7 @@
   #dim { position:absolute; right:2.5%; bottom:2.5%; z-index:2; font-size:1.2em; padding:.6em .9em; background:#2b1322; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--line), 0 .3em 0 var(--k); }
   #dim.on { background:var(--o2); color:var(--k); box-shadow:0 0 0 2px #fff, 0 .3em 0 var(--k); }
 
+  #stage.lobby #panel, #stage.lobby #dim { display:none; }
   /* ---- side panel: clean cards, readable type. Sizes are in em of the stage, so the blocks always fit and never overlap. ---- */
   #panel { flex:none; width:27%; height:100%; min-width:0; min-height:0; display:flex; flex-direction:column; gap:.75em; font-family:"Chakra Petch", system-ui, sans-serif; font-size:1.3em; line-height:1.35; }
   .card { position:relative; flex:none; min-width:0; min-height:0; overflow:hidden; padding:.85em 1em; border-radius:.9em; background:linear-gradient(180deg, #2a1422e6, #180b14f2); border:1px solid #ffffff1c; box-shadow:0 .5em 1.6em #0007, inset 0 1px 0 #ffffff12; }
@@ -68,12 +69,25 @@
   #note { font-size:.66em; color:var(--ink); opacity:.8; margin-top:.3em; height:2.7em; overflow:hidden; }
   #foot { display:flex; justify-content:space-between; font-size:.6em; color:var(--dim); margin-top:.3em; } #foot b { color:var(--ink); font-weight:600; padding:.05em .4em; border:1px solid #ffffff2e; border-radius:.3em; } #snd { cursor:pointer; color:var(--o2); }
 
-  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:#170a12ee; padding:4%; line-height:1.9; }
-  .screen h1 { font-size:2.6em; margin:0 0 .3em; color:var(--warn); font-weight:normal; text-shadow:.12em .12em 0 var(--k); } .screen h2 { font-size:1.05em; margin:0 0 .8em; color:var(--o2); font-weight:normal; }
-  .screen table { border-collapse:collapse; margin:.5em auto; text-align:left; } .screen td { padding:.05em 1em; } .screen td:last-child { color:var(--warn); text-align:right; }
-  .screen small { color:var(--dim); font-size:.7em; line-height:1.8; display:block; }
-  .blink { animation:blink 1s steps(2) infinite; } @keyframes blink { 50% { opacity:0; } }
-  .why { max-width:92%; margin:.2em auto .8em; padding:.7em 1em; border:2px solid var(--o2); border-radius:.8em; background:#0006; font-size:.78em; line-height:1.8; } .why b { color:var(--o2); font-weight:normal; }
+  /* ---- board overlays and screens: same clean type as the side panel ---- */
+  #legend, #toast, #guide, .screen { font-family:"Chakra Petch", system-ui, sans-serif; }
+  #legend { display:none; position:absolute; left:2.5%; bottom:2.5%; width:44%; z-index:2; font-size:1.25em; line-height:1.3; }
+  #lrows { list-style:none; margin:.55em 0 0; padding:0; display:grid; gap:.5em; }
+  #lrows li { display:flex; gap:.65em; align-items:flex-start; }
+  #lrows i { flex:none; width:1.75em; height:1.75em; border-radius:50%; border:2px solid; display:grid; place-items:center; font-style:normal; font-weight:700; font-size:.82em; background:#12060dcc; }
+  #lrows b { display:block; font-size:.86em; font-weight:700; color:#fff; } #lrows div { font-size:.72em; color:var(--dim); line-height:1.35; }
+  #lstart { margin:.7em 0 0; text-align:center; font-size:.78em; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--warn); animation:blink 1.1s steps(2) infinite; }
+  #toast { display:none; position:absolute; left:50%; top:12%; transform:translateX(-50%); z-index:4; padding:.6em 1.3em; border-radius:.8em; border:1.5px solid; background:#180b14f2; box-shadow:0 .5em 1.6em #000a; text-align:center; font-size:1.3em; line-height:1.35; white-space:nowrap; }
+  #toast b { display:block; font-weight:700; letter-spacing:.06em; } #toast span { display:block; font-size:.72em; color:var(--ink); }
+
+  .screen { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; background:#170a12f2; padding:4%; font-size:1.4em; line-height:1.5; }
+  .screen h1 { font-family:"Press Start 2P", monospace; font-size:2.4em; margin:0 0 .25em; color:var(--warn); font-weight:normal; text-shadow:.1em .1em 0 var(--k); }
+  .screen h2 { font-size:.95em; font-weight:600; letter-spacing:.2em; margin:0 0 .9em; color:var(--o2); }
+  .screen p { margin:.3em 0; }
+  .screen table { border-collapse:collapse; margin:.5em auto; text-align:left; font-size:.86em; } .screen td { padding:.12em 1em; border-bottom:1px solid #ffffff12; } .screen td:first-child { color:var(--dim); } .screen td:last-child { color:#fff; font-weight:600; text-align:right; }
+  .screen small { color:var(--dim); font-size:.66em; line-height:1.55; display:block; max-width:94%; }
+  .blink { font-size:.8em; font-weight:700; letter-spacing:.14em; color:var(--warn); animation:blink 1.1s steps(2) infinite; } @keyframes blink { 50% { opacity:.25; } }
+  .why { max-width:94%; margin:.5em auto; padding:.7em 1em; border:1px solid #4ff0d066; border-radius:.8em; background:#0006; font-size:.74em; line-height:1.5; text-align:left; } .why b { color:var(--o2); font-weight:700; letter-spacing:.08em; }
 
   /* full-window layers */
   #gate, #video, #cine { font-size:clamp(7px, 1vw, 14px); }
@@ -90,7 +104,7 @@
   #icap { min-height:4.2em; margin:1em 0 .4em; font-size:1.1em; max-width:90%; }
   #idots { display:flex; gap:.6em; margin-bottom:1em; } #idots i { width:2.4em; height:.5em; border-radius:1em; background:#5a2a3c; overflow:hidden; } #idots i b { display:block; height:100%; width:0; background:var(--o2); }
   #ibtn { display:flex; gap:1em; }
-  .mini { border:2px solid var(--k); border-radius:.8em; box-shadow:0 .25em 0 var(--k); padding:.7em 1.2em; background:#3a1a2c; font-size:.8em; margin:.2em .3em .8em; }
+  .mini { font-family:inherit; font-size:.66em; font-weight:600; letter-spacing:.06em; padding:.5em 1.1em; margin:.2em .3em .6em; color:var(--ink); background:#ffffff0d; border:1px solid #ffffff2e; border-radius:2em; } .mini:hover { background:var(--o2); border-color:var(--o2); color:var(--k); }
   #ibtn button, #gskip { border:2px solid var(--k); border-radius:.8em; box-shadow:0 .25em 0 var(--k); padding:.7em 1.2em; }
   #inext { background:var(--o2); color:var(--k); } #iskip { background:#3a1a2c; }
   #guide { display:none; position:absolute; left:50%; top:2.5%; transform:translateX(-50%); width:82%; align-items:center; gap:1em; background:#fff6e6; color:#2e1424; border:3px solid var(--k); border-radius:1em; box-shadow:0 0 0 2px var(--o2), 0 .6em 2em #000a; padding:.8em 1em; z-index:3; animation:nudge 1.2s ease-in-out infinite; }
@@ -98,10 +112,12 @@
   #gstep { font-weight:normal; background:var(--o2); border-radius:.6em; padding:.3em .6em; font-size:.8em; flex:none; } #gtext { flex:1; font-size:.9em; line-height:1.8; }
   #gskip { background:#2e1424; color:#fff6e6; font-size:.65em; flex:none; padding:.6em .8em; }
   #debrief, #how { display:none; } #how { background:#170a12f7; font-size:.88em; } #how p { margin:.4em 0; } #how td:first-child { color:var(--dim); }
-  #levels { display:flex; gap:1em; margin:.4em 0 .8em; }
-  #levels button { width:13em; padding:1em .8em; background:linear-gradient(180deg, var(--card), var(--deep)); border:3px solid var(--k); border-radius:1em; box-shadow:0 0 0 2px var(--line), 0 .4em 0 var(--k); }
-  #levels button:hover { box-shadow:0 0 0 2px var(--o2), 0 .4em 0 var(--k); transform:translateY(-.2em); }
-  #levels b { display:block; color:var(--warn); font-weight:normal; font-size:1.15em; margin-bottom:.6em; } #levels span { display:block; color:var(--dim); font-size:.72em; line-height:1.8; } #levels i { display:block; color:var(--o2); font-style:normal; font-size:.72em; margin-top:.6em; }
+  #levels { display:grid; grid-template-columns:repeat(3, 1fr); gap:.7em; width:94%; margin:.7em 0 .6em; }
+  #levels button { font-family:inherit; text-align:left; padding:.8em .9em; color:var(--ink); background:linear-gradient(180deg, #2a1422, #180b14); border:1px solid #ffffff24; border-radius:.8em; box-shadow:0 .4em 1.2em #0007; transition:transform .12s, border-color .12s; }
+  #levels button:hover { border-color:var(--warn); transform:translateY(-.15em); }
+  #levels b { display:flex; align-items:baseline; gap:.5em; font-size:1em; font-weight:700; letter-spacing:.1em; color:#fff; } #levels b u { text-decoration:none; font-size:.7em; color:var(--k); background:var(--warn); border-radius:.3em; padding:0 .45em; }
+  #levels span { display:block; margin:.35em 0 .55em; font-size:.66em; line-height:1.4; color:var(--dim); min-height:2.8em; }
+  #levels em { display:block; font-style:normal; font-size:.6em; letter-spacing:.06em; color:var(--o2); border-top:1px solid #ffffff14; padding-top:.45em; } #levels em.none { color:#ffffff55; }
   #photo { display:none; position:absolute; left:2.5%; bottom:2.5%; width:44%; background:#fff6e6; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--o2), 0 .6em 2em #000a; padding:.5em; transform:rotate(-1.5deg); }
   #ptag { display:block; font-weight:normal; font-size:.62em; color:#fff6e6; background:#2e1424; border-radius:.4em; padding:.4em .6em; margin-bottom:.4em; text-align:center; }
   #photo img { display:block; width:100%; border-radius:.4em; } #cap { margin:.5em .2em .1em; color:#2e1424; font-size:.62em; line-height:1.7; }
@@ -156,10 +172,12 @@
       <h2>STRANDED IN JEZERO CRATER</h2>
       <p>A traveller from another star has crashed on Mars.<br>Find the 3 lost pieces of the ship<br>and get back before your oxygen runs out.</p>
       <div id="levels"><button data-l="0"></button><button data-l="1"></button><button data-l="2"></button></div>
-      <p class="blink">PRESS 1, 2 OR 3</p>
+      <p class="blink">Choose a level: press 1, 2 or 3</p>
       <div><button id="watch" class="mini">&#9654; WATCH INTRO</button> <button id="replay" class="mini">? HOW TO PLAY</button></div>
       <div class="why"><b>WHAT YOU LEARN</b> How scientists read slope and night-heat maps to tell safe ground from deadly ground — and why a planned route saves oxygen and lives. Checked against the path NASA's Perseverance rover really drove.</div>
     </div>
+    <div id="legend" class="card"><span class="lab">What you are looking at</span><ol id="lrows"></ol><p id="lstart">Press any arrow key to start</p></div>
+    <div id="toast"></div>
     <div id="guide"><b id="gstep"></b><span id="gtext"></span><button id="gskip">SKIP GUIDE</button></div>
     <div id="intro" class="screen">
       <canvas id="iv" width="640" height="360"></canvas>
