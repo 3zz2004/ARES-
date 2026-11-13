@@ -48,20 +48,6 @@ function quilt(N, which, tex, px) {
   return art;
 }
 
-// The data layers, painted in their own textures. Which texture a tile gets is the data itself:
-//   heat   <- THEMIS night IR, coldest (loose sand) to warmest (bedrock), 5 steps
-//   slope  <- HiRISE DTM slope: under 5°, 5-10°, 10° to the limit, over the limit (cannot be crossed)
-//   height <- HiRISE DTM elevation, 6 equal-area bands from the lowest ground to the highest
-export const LAYER_TEX = { heat: ["heat0", "heat1", "heat2", "heat3", "heat4"], slope: ["slope0", "slope1", "slope2", "slope3"], height: ["high0", "high1", "high2", "high3", "high4", "high5"] };
-export function paintLayers(T, tex) {
-  const N = T.cols, n = N * N, high = ranks(Float32Array.from(T.elev)), pick = (f) => Uint8Array.from({ length: n }, (_, i) => f(i));
-  return {
-    heat: quilt(N, pick((i) => Math.min(4, ((1 - T.soft[i]) * 5) | 0)), tex.heat, 32),
-    slope: quilt(N, pick((i) => (T.slope[i] > SLOPE_LIMIT ? 3 : T.slope[i] > 10 ? 2 : T.slope[i] > 5 ? 1 : 0)), tex.slope, 32),
-    height: quilt(N, pick((i) => Math.min(5, (high[i] * 6) | 0)), tex.height, 32),
-  };
-}
-
 export function tileKind(T, i) { return T.slope[i] > SLOPE_LIMIT ? "cliff" : T.soft[i] > 0.6 ? "dune" : T.soft[i] < 0.36 ? "slab" : "gravel"; }
 
 // flat = true paints the ground for the 3D view: no rocks and no ledges (those become real geometry there), only their

@@ -1,8 +1,9 @@
 import { makeCost, planTour, astar, SLOPE_LIMIT } from "./astar.js";
-import { paintBoard, paintLayers, tileKind, TS, ART, TEXTURES, LAYER_TEX } from "./tiles.js";
+import { paintBoard, tileKind, TS, ART, TEXTURES } from "./tiles.js";
 import * as A from "./audio.js";
 import { startCine, drawCine } from "./cine.js";
 import * as V3 from "./view3d.js";
+import * as KB from "./ares.js";
 
 const TILE = TS;                            // canvas pixels per board tile (40x40 tiles -> 640 px)
 const JUMP_MS = 170;                        // one hop
@@ -30,12 +31,12 @@ async function loadBoard() {
   const [pack, img, height, astro, astroMeta, ares, aresMeta, propSizes, tex] = await Promise.all([json("data/board.json"), image("data/board.png"), image("data/height.png"),
     image("assets/astro.png"), json("assets/astro.json"), image("assets/ares.png"), json("assets/ares.json"), json("assets/props/props.json"),
     Promise.all(TEXTURES.map((n) => image(`assets/tex/${n}.png`)))]);
-  const ltex = {}; await Promise.all(Object.entries(LAYER_TEX).map(async ([k, names]) => { ltex[k] = await Promise.all(names.map((n) => image(`assets/tex/${n}.png`))); }));
-  pack.ltex = ltex;
+  pack.layers = { slope: await image("data/slope.png"), heat: await image("data/heat.png") };   // clean data maps, built by tools/build_tiles.py
   const props = await Promise.all(propSizes.map((row, r) => Promise.all(row.map((_, c) => image(`assets/props/${r}_${c}.png`)))));
   const names = { wreck: "0_0", ship: "0_1", part0: "2_0", part1: "2_1", part2: "2_3", tank: "2_4", rover: "3_0" }, items = {};
   await Promise.all(Object.entries(names).map(async ([k, f]) => { items[k] = await image(`assets/items/${f}.png`); }));
   const rover = await json("data/rover.json");
+  KB.index(await json("data/knowledge.json"));               // what ARES can look up (see ares.js)
   return { ...pack, img, height, tex, props, items, rover, astro: { img: astro, ...astroMeta }, ares: { img: ares, ...aresMeta } };
 }
 function overlay(t, colour) {               // one pixel per tile, scaled up when drawn
@@ -53,9 +54,9 @@ const thermalColour = (t) => (i) => { const w = 1 - t.soft[i];   // warm at nigh
 const LAYERS = {
   1: () => ["linear-gradient(90deg,#8c4a66,#ac5454,#c66c48,#dc8a4e,#eeae66)", "LOW", "HIGH", "Drawn from the data: ripples = loose sand, cracked slabs = bedrock, boulders = steep."],
   2: () => ["linear-gradient(90deg,#3e1c64,#b03e78,#d4582c,#f6be32)", "LOW", "HIGH", "The real HiRISE photo of this exact ground."],
-  3: (t) => ["linear-gradient(90deg,#4a2a9a,#a0286e,#c83a3a,#e8702a,#f2a83a,#fbe2b0)", t.elev_range_m[0].toFixed(0) + " m", t.elev_range_m[1].toFixed(0) + " m", "Real elevation (HiRISE). Purple is the lowest ground, cream the highest."],
-  4: () => ["linear-gradient(90deg,#3cdc82 0 25%,#ffd23c 25% 50%,#ff8c1e 50% 75%,#ff2a3c 75%)", "FLAT", `OVER ${SLOPE_LIMIT}°`, `Real slope (HiRISE). Green under 5°, yellow to 10°, orange to ${SLOPE_LIMIT}°, red cannot be crossed.`],
-  5: () => ["linear-gradient(90deg,#2a2a9a,#2a90a0,#7a5a90,#d87830,#ff4a20)", "COLD: SAND", "WARM: ROCK", "Night heat (THEMIS). Cold ground is loose sand, warm ground is solid rock."],
+  3: (t) => ["linear-gradient(90deg,#4a2a9a,#a0286e,#c83a3a,#e8702a,#f2a83a,#fbe2b0)", t.elev_range_m[0].toFixed(0) + " m", t.elev_range_m[1].toFixed(0) + " m", "Real elevation (HiRISE), with a contour line every 5 m."],
+  4: () => ["linear-gradient(90deg,#2e9660,#78c860,#f0d646,#f48c28,#e22c3c)", "0°", `${SLOPE_LIMIT}° and over`, `Real slope (HiRISE). Green is flat. Red is over ${SLOPE_LIMIT}° and cannot be crossed.`],
+  5: () => ["linear-gradient(90deg,#282c96,#288ca8,#7e6096,#de8034,#ff5428)", "COLD: SAND", "WARM: ROCK", "Night heat (THEMIS). Cold ground is loose sand, warm ground is solid rock."],
 };
 function setLayer(n) {
   if (S.layer !== n) A.ui();
@@ -182,6 +183,12 @@ function start(level = S.level ?? LEVELS[0]) {
     <div><b>&minus;${(I.save * 100).toFixed(0)}%</b><span>oxygen used</span></div>
     <div><b><s>${I.bad0} &rarr;</s> ${I.bad1}</b><span>danger tiles</span></div>
     <div><b><s>${(I.odds0 * 100).toFixed(0)}% &rarr;</s> ${(I.odds1 * 100).toFixed(0)}%</b><span>accident odds</span></div></div>` : "";
+  const row = (n, colour, title, text) => `<li><i style="border-color:${colour};color:${colour}">${n}</i><div><b>${title}</b>${text}</div></li>`;
+  $("lrows").innerHTML = (level.line ? row(1, "#39e66b", "ARES's route", I ? `Planned with A* on NASA's slope and heat data. ${(I.save * 100).toFixed(0)}% less oxygen than the shortest way.` : "Planned with A* on NASA's slope and heat data.") : "")
+    + row(2, "#ffffff", "Perseverance's real drive", "Where NASA's rover actually went. It kept to gentle ground too.")
+    + row(3, "#ffcf4a", "Ship piece (+100)", "Lies at a real rover stop. You get the photo NASA took there.")
+    + row(4, "#4ff0d0", "Air tank (+25% oxygen)", "On steep or sandy ground. Worth the risk?")
+    + row(5, "#ff7a59", "The wreck", "Bring all three pieces back before the air runs out.");
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
   S.showRover = true;
   $("title").style.display = "none"; $("debrief").style.display = "none"; $("how").style.display = "none"; $("photo").style.display = "none"; $("log").textContent = ""; S.type = null;
@@ -191,7 +198,8 @@ function start(level = S.level ?? LEVELS[0]) {
   say("Blue tanks = spare air. They fell on bad ground. Steep or sandy ground can kill.", "", 0);
   if (I) say(level.line ? `Why follow my line? The short way crosses ${I.bad0} danger tiles. Mine crosses ${I.bad1}, and burns ${(I.save * 100).toFixed(0)}% less air. Data saves lives.`
     : `No line today. But know this: a planned way here burns ${(I.save * 100).toFixed(0)}% less air than the short way, and crosses ${I.bad1} danger tiles, not ${I.bad0}. Read the maps.`, "A* on real slope and night-heat data vs the shortest path", 0);
-  S.brief = performance.now() + 9000; S.tips = true; S.pop = null;   // open on the whole map with every label showing
+  S.brief = performance.now() + 12000; S.tips = true; S.pop = null;   // open on the whole map with the legend showing
+  suggest(["Where is the next piece?", "Why follow your route?", "How do you tell sand from rock?", "Why did the rover come here?"]);
   let guided = false; try { guided = !!localStorage.getItem("ares-guided"); } catch { /* private mode */ }
   if (!guided && level.line) startGuide(); else { S.guide = null; $("guide").style.display = "none"; }   // first game: ARES explains the controls
 }
@@ -271,7 +279,7 @@ function land(to) {
 }
 
 function end(why, cause) {
-  S.state = "end"; S.auto = false; S.jump = null; $("photo").style.display = "none"; S.guide = null; $("guide").style.display = "none";
+  S.state = "end"; S.auto = false; S.jump = null; $("photo").style.display = "none"; $("legend").style.display = "none"; $("toast").style.display = "none"; S.guide = null; $("guide").style.display = "none";
   S.zoomed = why !== "home";                                  // win: pull back to show the whole walk
   S.lost = why === "home" ? null : performance.now();
   const got = S.parts.filter((p) => p.done).length, o2 = Math.max(0, 1 - S.spent / S.tank), L = S.level, R = T.rover.stats;
@@ -305,35 +313,84 @@ function end(why, cause) {
   clearTimeout(S.debriefT); S.debriefT = setTimeout(() => { if (S.state === "end") $("debrief").style.display = "flex"; }, won ? 3200 : why === "home" ? 600 : 1800);
 }
 
-// ---------- chat (scripted for now: answers from the live game state) ----------
+// ---------- ARES's answers: tools that compute on the NASA data, then retrieval from the knowledge base (see ares.js). No language model. ----------
+// The real way from where you stand to a tile: the stretch of the green line if it goes there, otherwise a fresh A* search.
+function wayTo(target) {
+  if (S.route && S.route.path[S.ri] === S.cell) { const k = S.route.path.indexOf(target, S.ri); if (k >= 0) return { path: S.route.path.slice(S.ri, k + 1), cost: S.route.remain[S.ri] - S.route.remain[k] }; }
+  return astar(T, cost, S.cell, target);
+}
+const pct = (c) => ((c / S.tank) * 100).toFixed(0);
+function nearest(cells) {                    // nearest by real walking cost, not by straight-line distance
+  let best = null; for (const c of cells) { const w = wayTo(c); if (w && (!best || w.cost < best.cost)) best = { ...w, cell: c }; } return best;
+}
+// Where a tile is from you, in plain compass words and metres (used for facts about the map, not for walking directions).
+function bearing(j) {
+  const dx = X(j) - X(S.cell), dy = Y(j) - Y(S.cell), m = Math.round(Math.hypot(dx, dy) * T.cell_m);
+  if (!dx && !dy) return "right where you stand";
+  const ns = Math.abs(dy) * 2 > Math.abs(dx) ? (dy < 0 ? "north" : "south") : "", ew = Math.abs(dx) * 2 > Math.abs(dy) ? (dx < 0 ? "west" : "east") : "";
+  return `${m} m to the ${ns}${ns && ew ? "-" : ""}${ew}`;
+}
+// Questions about the data itself, answered by measuring the board (every number is computed from the NASA layers, live).
+function dataAnswer(q) {
+  const n = T.slope.length, pick = (arr, sign) => { let b = 0; for (let j = 1; j < n; j++) if ((arr[j] - arr[b]) * sign > 0) b = j; return b; };
+  const share = (f) => ((Array.from({ length: n }, (_, j) => j).filter(f).length / n) * 100).toFixed(0);
+  if (/steepest|most steep|worst slope/.test(q)) { const j = pick(T.slope, 1); return [`The steepest tile is ${T.slope[j].toFixed(1)}°, ${bearing(j)}. It is a rock wall: nobody crosses that.`, "HiRISE terrain model, steepest part of each 40 m tile"]; }
+  if (/flattest|least steep|gentlest/.test(q)) { const j = pick(T.slope, -1); return [`The flattest tile is ${T.slope[j].toFixed(1)}°, ${bearing(j)}, on ${surface(j)}.`, "HiRISE terrain model"]; }
+  if (/highest|tallest|top|peak/.test(q)) { const j = pick(T.elev, 1); return [`The highest ground is ${T.elev[j].toFixed(1)} m, ${bearing(j)}. Heights on Mars are counted from a reference level, so they are negative here.`, "HiRISE terrain model, elevation"]; }
+  if (/lowest|deepest|bottom/.test(q)) { const j = pick(T.elev, -1); return [`The lowest ground is ${T.elev[j].toFixed(1)} m, ${bearing(j)}. The whole board spans ${(T.elev_range_m[1] - T.elev_range_m[0]).toFixed(0)} m from low to high.`, "HiRISE terrain model, elevation"]; }
+  if (/how much|how many|percent|share|portion|area/.test(q) && /sand|dune|soft/.test(q)) return [`${share((j) => tileKind(T, j) === "dune")}% of the board is loose sand: ground that goes cold at night.`, "THEMIS night infrared"];
+  if (/how much|how many|percent|share|portion|area/.test(q) && /rock|bedrock|slab|solid/.test(q)) return [`${share((j) => tileKind(T, j) === "slab")}% of the board is solid rock: ground that stays warm at night.`, "THEMIS night infrared"];
+  if (/how many|how much|count|number/.test(q) && /wall|block|impass|cannot cross|no.?go/.test(q)) return [`${T.slope.filter((s) => s > SLOPE_LIMIT).length} of ${n} tiles are steeper than ${SLOPE_LIMIT}° and cannot be crossed.`, "HiRISE terrain model"];
+  if (/how many|how much|count|number/.test(q) && /danger|risk|unsafe/.test(q)) return [`${Array.from({ length: n }, (_, j) => j).filter((j) => cost.passable(j) && cost.risk(j) > 0).length} of ${n} tiles are dangerous to step on, and ${T.slope.filter((s) => s > SLOPE_LIMIT).length} more cannot be crossed at all.`, "HiRISE slope + THEMIS night heat"];
+  if (/average|mean|typical/.test(q) && /slope|steep/.test(q)) return [`The average slope of the board is ${T.rover.stats.board_mean_slope}°. The tiles the real rover drove on average ${T.rover.stats.rover_mean_slope}°.`, "HiRISE terrain model + NASA rover traverse"];
+  if (/how (big|large|wide|long)|size|scale|metre|meter/.test(q) && /map|board|area|tile|this/.test(q)) return [`The board is 1.60 km north to south and 1.52 km east to west: ${T.cols} by ${T.rows} tiles of ${T.cell_m} m. It is centred on the rover's landing site, ${T.center.lat}° N, ${T.center.lon}° E.`, "HiRISE terrain model window"];
+  if (/how far|distance|how long/.test(q) && /rover|drove|drive|perseverance/.test(q)) { const P = T.rover.path; let m = 0; for (let k = 1; k < P.length; k++) m += Math.hypot(P[k][0] - P[k - 1][0], P[k][1] - P[k - 1][1]) * T.cell_m;
+    return [`Inside this board the rover drove about ${(m / 1000).toFixed(1)} km, between sols ${T.rover.stats.drive_sols[0]} and ${T.rover.stats.drive_sols[1]}, stopping ${T.rover.stats.waypoints} times.`, "NASA Mars 2020 traverse data"]; }
+  return null;
+}
 function reply(q) {
   q = q.toLowerCase();
-  if (S.state !== "play") return ["Press ENTER first. Then ARES talks.", ""];
-  const i = S.cell, o2 = Math.max(0, 1 - S.spent / S.tank), left = S.parts.filter((p) => !p.done);
-  const where = (c) => { const dx = X(c) - X(i), dy = Y(c) - Y(i); return `${Math.abs(dx)} jumps ${dx < 0 ? "left" : "right"}, ${Math.abs(dy)} jumps ${dy < 0 ? "up" : "down"}`; };
-  if (/why|matter|impact|point|worth|benefit|learn/.test(q)) { const I = S.impact;
-    return [I ? `Short way: ${I.bad0} danger tiles, ${(I.odds0 * 100).toFixed(0)}% chance of an accident. Planned way: ${I.bad1} danger tiles, ${(I.odds1 * 100).toFixed(0)}%, and ${(I.save * 100).toFixed(0)}% less air. Your rover drivers plan the same way. So will the first crews.` : "Planning with real data means less air burned and fewer accidents.", "this board, real HiRISE + THEMIS data"]; }
-  if (/rover|machine|persev|nasa|white|dots/.test(q)) return [`The machine by the ship is PERSEVERANCE. It landed right here. The white dots are where it really drove. It kept to gentle ground: ${T.rover.stats.rover_mean_slope}° on average. Smart machine.`, "NASA Mars 2020 traverse data · landed 18 Feb 2021 · P hides the dots"];
-  if (/who|you|story|name|from|ship|crash/.test(q)) return ["ARES. From far star. Was going home. Ship broke. Now ARES has you. Good trade.", ""];
-  if (/tank|canister|refill|blue/.test(q)) { const t = S.tanks.filter((t) => !t.done).sort((a, b) => dist(i, a.cell) - dist(i, b.cell))[0];
-    return t ? [`Nearest air tank: ${where(t.cell)}. Ground there: ${T.slope[t.cell].toFixed(0)}° slope, ${surface(t.cell)}, ${(cost.risk(t.cell) * 100).toFixed(0)}% death chance each jump.`, `refills ${TANK_REFILL * 100}% oxygen`] : ["No tanks left.", ""]; }
-  if (/where|next|part|piece|find|far/.test(q)) {
-    if (!left.length) return [`All found! Ship is ${where(S.home)}. Go go go.`, ""];
-    const p = left.sort((a, b) => dist(i, a.cell) - dist(i, b.cell))[0];
-    return [`${p.name}: ${where(p.cell)}. It lies on ${surface(p.cell)}.`, "yellow marker on the board"];
+  if (S.state !== "play") return ["Start a walk first. Then ask me anything about this ground.", "", []];
+  const i = S.cell, o2 = Math.max(0, 1 - S.spent / S.tank), left = S.parts.filter((p) => !p.done), SRC = "A* path on real slope and night-heat data";
+  const go = (w) => KB.directions(KB.turns(w.path, T.cols));
+  const NAV = ["Is it safe around me?", "Do I have enough air?", "Where is the nearest air tank?"], DATA = ["Where is the steepest ground?", "How much of the map is sand?", "Where is the highest point?", "How far did the rover drive?"];
+  // 1. navigation: read off the real path
+  if (/\b(home|ship|wreck|back|return)\b/.test(q) && !/piece|part|broke|crash|who/.test(q)) { const w = wayTo(S.home);
+    return w ? [`To the ship: ${go(w)} It costs ${pct(w.cost)}% air. You have ${(o2 * 100).toFixed(0)}%.`, SRC, NAV] : ["There is no way to the ship from here.", SRC, NAV]; }
+  if (/tank|canister|refill/.test(q)) { const w = nearest(S.tanks.filter((t) => !t.done).map((t) => t.cell));
+    return w ? [`Nearest air tank: ${go(w)} It costs ${pct(w.cost)}% air to reach and gives back ${TANK_REFILL * 100}%. The ground there is ${T.slope[w.cell].toFixed(0)}° ${surface(w.cell)}: ${(cost.risk(w.cell) * 100).toFixed(0)}% accident odds on the last jump.`, SRC, ["Do I have enough air?", "Where is the next piece?", "Is it safe around me?"]] : ["No air tanks left.", "", NAV]; }
+  if (/next|piece|part\b|direction|which way|get to|lead me|guide me/.test(q)) {
+    if (!left.length) { const w = wayTo(S.home); return [`All three found. To the ship: ${go(w)} It costs ${pct(w.cost)}% air.`, SRC, NAV]; }
+    const w = nearest(left.map((p) => p.cell)), p = left.find((x) => x.cell === w.cell);
+    return [`${p.name}: ${go(w)} It costs ${pct(w.cost)}% air. It lies on ${surface(p.cell)}, where the rover stopped on sol ${p.stop.sol}.`, SRC, ["Is it safe around me?", "Do I have enough air?", "What are the photos I find?"]];
   }
-  if (/air|oxygen|o2|breath/.test(q)) return [`Air ${(o2 * 100).toFixed(0)}%. Breathing alone empties the tank in ${IDLE_SECONDS / 60} minutes. Off the line burns ${Math.round((OFF_PENALTY - 1) * 100)}% more.`, "cost = distance x (slope + soft ground)"];
-  if (/slope|steep|danger|safe|risk|die|dust|sand|ground|rock|boulder/.test(q)) return [`Here: ${T.slope[i].toFixed(1)}° slope, ${surface(i)}. ${S.onRoute.has(i) ? "On the green line. Safe." : `Off the line: ${(cost.risk(i) * 100).toFixed(1)}% death chance each jump.`}`, "HiRISE DTM + THEMIS night IR"];
-  if (/high|low|colou?r|map|elev|height|draw|art|real|photo/.test(q)) return [`The map is drawn from real data. Ripples = cold loose sand. Cracked slabs = warm bedrock. Boulders = steep. Rose = low, gold = high. Press PHOTO for the real picture. Here: ${T.elev[i].toFixed(0)} m.`, "HiRISE DTM + THEMIS"];
-  if (/route|path|way|help|how|line|green|a\*/.test(q)) return [`Green = cheapest, safest way. SPACE and ARES leads. Off it, air burns ${Math.round((OFF_PENALTY - 1) * 100)}% faster and Mars can kill.`, "A* over slope + ground softness"];
-  return ["ARES does not know these words yet. Ask: where? tank? air? danger? rover?", ""];
+  // 2. your tank and the ground around you
+  if (/enough|\b(air|oxygen|o2)\b.*\b(left|have|much)\b|\bhow much (air|oxygen)/.test(q)) { const plan = planTour(T, cost, i, left.map((p) => p.cell), S.home), need = plan ? plan.cost / S.tank : 1;
+    return [`You have ${(o2 * 100).toFixed(0)}% air. The cheapest way to finish from here needs ${(need * 100).toFixed(0)}%. ${need < o2 ? `That leaves ${((o2 - need) * 100).toFixed(0)}% spare.` : "That is not enough: take an air tank."}`, "A* tour cost from your tile", ["Where is the nearest air tank?", "Where is the next piece?", "How does the oxygen work?"]]; }
+  if (/safe|around me|under me|where i stand|near me|next to me/.test(q)) {
+    const look = [["up", 0, -1], ["down", 0, 1], ["left", -1, 0], ["right", 1, 0]].map(([name, dx, dy]) => { const x = X(i) + dx, y = Y(i) + dy; if (x < 0 || y < 0 || x >= T.cols || y >= T.rows) return `${name}: edge of the map`;
+      const j = y * T.cols + x; return !cost.passable(j) ? `${name}: rock wall, ${T.slope[j].toFixed(0)}°` : `${name}: ${T.slope[j].toFixed(0)}° ${surface(j)}${cost.risk(j) ? `, ${(cost.risk(j) * 100).toFixed(0)}% risk` : ", safe"}`; });
+    return [`You stand on ${T.slope[i].toFixed(1)}° ${surface(i)}, at ${T.elev[i].toFixed(0)} m. ${look.join(". ")}.`, "HiRISE slope and elevation, THEMIS night heat, per tile", ["Where is the next piece?", "How do you tell sand from rock?", "How steep can a rover go?"]];
+  }
+  // 3. measurements of the board
+  const d = dataAnswer(q); if (d) return [...d, DATA.filter((x) => x.toLowerCase() !== q).slice(0, 3)];
+  // 4. retrieval: the written knowledge base, with this board's live numbers filled in
+  const I = S.impact, R = T.rover.stats;
+  const hit = KB.retrieve(q, { limit: SLOPE_LIMIT, cell: T.cell_m, pen: Math.round((OFF_PENALTY - 1) * 100), refill: TANK_REFILL * 100, sol0: R.drive_sols[0], sol1: R.drive_sols[1],
+    rslope: R.rover_mean_slope, bslope: R.board_mean_slope, dem: R.dem_vs_rover_elev_std_m,
+    save: I ? (I.save * 100).toFixed(0) : "?", bad0: I ? I.bad0 : "?", bad1: I ? I.bad1 : "?", odds0: I ? (I.odds0 * 100).toFixed(0) : "?", odds1: I ? (I.odds1 * 100).toFixed(0) : "?" });
+  if (hit) return [hit.text, hit.source, hit.next];
+  return ["I do not have that in the data I carry, so I will not guess. Ask me about this ground: the slopes, the heat, the heights, the rover, or the way to go.", "", [DATA[0], DATA[1], ...KB.someQuestions(2)]];
 }
-$("ask").addEventListener("submit", (e) => {
-  e.preventDefault(); const q = $("q").value.trim(); if (!q) return;
-  $("q").value = ""; post("u", "YOU:", q); const [a, src] = reply(q); say(a, src, 0); $("q").blur();
-});
-$("chips").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
-  post("u", "YOU:", b.textContent); const [a, src] = reply(b.dataset.q); say(a, src, 0); b.blur(); });
+function ask(q) {                            // one question in, one sourced answer out, plus what to ask next
+  post("u", "YOU:", q); const [a, src, next] = reply(q); say(a, src, 0); suggest(next);
+}
+function suggest(list) {
+  const qs = [...new Set([...(list || []), "Where is the next piece?", "Why follow your route?", "How do I know your map is right?", "How much of the map is sand?"])].slice(0, 4);
+  $("chips").innerHTML = ""; qs.forEach((t) => { const b = document.createElement("button"); b.textContent = t; b.dataset.q = t; $("chips").append(b); });
+}
+$("ask").addEventListener("submit", (e) => { e.preventDefault(); const q = $("q").value.trim(); if (!q) return; $("q").value = ""; $("q").blur(); ask(q); });
+$("chips").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; b.blur(); ask(b.dataset.q); });
 
 // ---------- loop ----------
 function update(dt) {
@@ -390,8 +447,8 @@ function draw(now) {
   if (S.quake) { const age = (now - S.quake.t0) / 260; if (age >= 1) S.quake = null; else { qx = Math.sin(now / 17) * S.quake.amp * (1 - age); qy = Math.cos(now / 13) * S.quake.amp * (1 - age); } }
   if (d3) { ctx = veilCtx; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, VEIL, VEIL); ctx.setTransform(VEIL / BOARD, 0, 0, VEIL / BOARD, 0, 0); }
   else ctx.setTransform(zoom, 0, 0, zoom, -(clamp(S.camX) - half + qx) * zoom, -(clamp(S.camY) - half + qy) * zoom);
-  const art = S.layer === 1, base = [null, T.art, T.img, T.layers.height, T.layers.slope, T.layers.heat][S.layer];
-  if (!d3 || !art) { ctx.imageSmoothingEnabled = S.layer !== 2; ctx.drawImage(base, 0, 0, BOARD, BOARD); }   // in 3D the painted board is already on the mesh
+  const art = S.layer === 1, base = [null, T.art, T.img, T.height, T.layers.slope, T.layers.heat][S.layer];
+  if (!d3 || !art) { ctx.imageSmoothingEnabled = true; ctx.drawImage(base, 0, 0, BOARD, BOARD); }   // in 3D the painted board is already on the mesh
   ctx.imageSmoothingEnabled = false;
   ctx.fillStyle = S.layer === 2 ? "#0003" : "#00000018"; for (let k = 1; k < T.cols; k++) { ctx.fillRect(k * TILE, 0, 0.5, 640); ctx.fillRect(0, k * TILE, 640, 0.5); }
   if (S.layer === 2) { ctx.fillStyle = "#1a0a14aa";                          // photo / height views: hatch the rock walls
@@ -492,38 +549,26 @@ function draw(now) {
       ctx.fillStyle = S.float.good ? "#4ff0d0" : S.float.off ? "#ff5a6e" : "#ffffff"; ctx.fillText(S.float.text, tx, ty); }
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  // ---- labels on the map itself: what each thing is and what it is worth (I toggles them) ----
+  // ---- on the map: small numbered markers only. What each number means is in the legend card (I toggles both). ----
   const CW = $("c").width, scr = (bx, by, up = 0) => (d3 ? V3.project(bx, by, up) : [(bx - (clamp(S.camX) - half + qx)) * zoom, (by - (clamp(S.camY) - half + qy)) * zoom]);
-  const callout = (bx, by, lines, dx, dy, colour = "#4ff0d0", alpha = 1) => {
-    const [px, py] = scr(bx, by); if (px < 10 || py < 10 || px > CW - 10 || py > CW - 10) return;
-    const fonts = ["700 15px 'Chakra Petch', sans-serif", "500 14px 'Chakra Petch', sans-serif"]; ctx.textAlign = "left";
-    const w = Math.max(...lines.map((l, k) => { ctx.font = fonts[k ? 1 : 0]; return ctx.measureText(l).width; })) + 26, h = lines.length * 19 + 16;
-    let x = Math.max(8, Math.min(CW - w - 8, px + dx - w / 2)), y = Math.max(8, Math.min(CW - h - 8, py + dy - h / 2));
-    const hits = (bx2, by2) => boxes.some((b) => bx2 < b[0] + b[2] + 8 && bx2 + w + 8 > b[0] && by2 < b[1] + b[3] + 8 && by2 + h + 8 > b[1]);
-    for (let n = 1; n < 14 && hits(x, y); n++) y = Math.max(8, Math.min(CW - h - 8, py + dy - h / 2 + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * (h + 10)));   // step aside from labels already placed
-    boxes.push([x, y, w, h]);
-    const ex = Math.max(x, Math.min(x + w, px)), ey = Math.max(y, Math.min(y + h, py));      // where the pointer leaves the box
-    ctx.globalAlpha = alpha; ctx.lineCap = "round";
-    ctx.strokeStyle = "#12060dcc"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(px, py); ctx.stroke();
-    ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(px, py); ctx.stroke();
-    ctx.fillStyle = "#12060d"; ctx.beginPath(); ctx.arc(px, py, 7, 0, 7); ctx.fill(); ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
-    ctx.fillStyle = "#170a14ee"; ctx.beginPath(); ctx.roundRect(x, y, w, h, 9); ctx.fill(); ctx.strokeStyle = colour; ctx.lineWidth = 1.5; ctx.stroke();
-    ctx.fillStyle = colour; ctx.beginPath(); ctx.roundRect(x, y + 8, 4, h - 16, 2); ctx.fill();
-    lines.forEach((l, k) => { ctx.font = fonts[k ? 1 : 0]; ctx.fillStyle = k ? "#fff1dc" : colour; ctx.fillText(l, x + 15, y + 23 + k * 19); }); ctx.globalAlpha = 1;
-  };
-  const boxes = [];
-  const mid = (i) => [cx(i) + 8, cy(i) + 8], I = S.impact;
+  const mid = (i) => [cx(i) + 8, cy(i) + 8];
+  const badge = (bx, by, n, colour) => { const [px, py] = scr(bx, by, 18); if (px < 16 || py < 16 || px > CW - 16 || py > CW - 16) return;
+    ctx.fillStyle = "#12060dee"; ctx.beginPath(); ctx.arc(px, py, 13, 0, 7); ctx.fill(); ctx.strokeStyle = colour; ctx.lineWidth = 2.5; ctx.stroke();
+    ctx.font = "700 15px 'Chakra Petch', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = colour; ctx.fillText(n, px, py + 5.5); };
+  $("legend").style.display = S.tips && S.state === "play" && $("photo").style.display !== "block" ? "block" : "none";
+  $("lstart").style.display = briefing ? "block" : "none";
   if (S.tips) {
-    if (S.route && I) { const p = S.route.path[Math.min(S.route.path.length - 1, S.ri + Math.max(4, (S.route.path.length - S.ri) >> 2))];
-      callout(...mid(p), ["ARES'S ROUTE (A*)", `${(I.save * 100).toFixed(0)}% less oxygen`, `danger tiles ${I.bad0} > ${I.bad1}`, `accident odds ${(I.odds0 * 100).toFixed(0)}% > ${(I.odds1 * 100).toFixed(0)}%`], 150, -110, "#39e66b"); }
-    if (S.showRover) { const P = T.rover.path, q = P[(P.length * 0.72) | 0]; callout(q[0] * TILE, q[1] * TILE, ["PERSEVERANCE'S REAL DRIVE", "NASA rover data", "it avoided steep ground too"], 170, 90, "#ffffff"); }
-    const part = S.parts.find((p) => !p.done); if (part) callout(...mid(part.cell), ["SHIP PIECE  +100", "lies at a real rover stop", "shows NASA's photo from here"], -150, -90, "#ffcf4a");
-    const tank = S.tanks.find((t) => !t.done); if (tank) callout(...mid(tank.cell), ["AIR TANK  +25% O2", "on dangerous ground:", `${T.slope[tank.cell].toFixed(0)} deg slope`], -140, 80, "#4ff0d0");
-    callout(...mid(S.home), ["THE WRECK", "bring all 3 pieces back", "before the air runs out"], -190, 10, "#ff7a59");
-    if (briefing) { ctx.font = "700 18px 'Chakra Petch', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#12060dcc"; ctx.beginPath(); ctx.roundRect(CW / 2 - 190, 16, 380, 34, 17); ctx.fill();
-      ctx.fillStyle = Math.floor(now / 500) % 2 ? "#fff1dc" : "#ffcf4a"; ctx.fillText("PRESS ANY ARROW KEY TO START", CW / 2, 39); }
+    if (S.route) badge(...mid(S.route.path[Math.min(S.route.path.length - 1, S.ri + Math.max(3, (S.route.path.length - S.ri) >> 3))]), 1, "#39e66b");
+    if (S.showRover) { const P = T.rover.path, q = P[(P.length * 0.72) | 0]; badge(q[0] * TILE, q[1] * TILE, 2, "#ffffff"); }
+    for (const part of S.parts) if (!part.done) badge(...mid(part.cell), 3, "#ffcf4a");
+    for (const tank of S.tanks) if (!tank.done) badge(...mid(tank.cell), 4, "#4ff0d0");
+    badge(...mid(S.home), 5, "#ff7a59");
   }
-  if (S.pop) { const age = now - S.pop.t0; if (age > 3800) S.pop = null; else callout(...mid(S.pop.cell), S.pop.lines, S.pop.dx ?? 130, -110 - age * 0.01, S.pop.colour, Math.min(1, (3800 - age) / 500)); }   // what just happened, and what it was worth
+  if (S.pop && !S.pop.shown) {                               // what just happened and what it was worth: a short note at the top
+    S.pop.shown = true; const t = $("toast"); t.style.borderColor = S.pop.colour;
+    t.innerHTML = S.pop.lines.map((l, k) => (k ? `<span>${l}</span>` : `<b style="color:${S.pop.colour}">${l}</b>`)).join(""); t.style.display = "block";
+  }
+  if (S.pop && now - S.pop.t0 > 3800) { S.pop = null; $("toast").style.display = "none"; }
   // screen space: a soft dark frame, redder when oxygen is low
   const W = $("c").width, v = ctx.createRadialGradient(W / 2, W / 2, W * 0.36, W / 2, W / 2, W * 0.74), low = o2 < 0.25 ? 0.5 + 0.2 * Math.sin(now / 200) : 0;
   v.addColorStop(0, "rgba(20,8,18,0)"); v.addColorStop(1, low ? `rgba(150,10,30,${low})` : "rgba(20,8,18,0.6)"); ctx.fillStyle = v; ctx.fillRect(0, 0, W, W);
@@ -675,6 +720,7 @@ $("gskip").addEventListener("click", (e) => { e.target.blur(); endGuide(); });
 
 let last = performance.now();
 function frame(now) {
+  $("stage").classList.toggle("lobby", S.state !== "play" && S.state !== "end");   // the side panel belongs to the walk, not to the menu
   if (S.state === "cine") drawCine($("cv").getContext("2d"), S, T, endCine);
   else if (S.state === "intro") drawIntro(now); else if (S.state === "play" || S.state === "end") { update(Math.min(50, now - last)); draw(now); }
   last = now; requestAnimationFrame(frame);
@@ -683,7 +729,6 @@ function frame(now) {
 loadBoard().then(async (t) => {
   T = t; cost = makeCost(T);
   T.art = paintBoard(T, T.img, T.tex, T.props);
-  T.layers = paintLayers(T, T.ltex);                          // HEAT, SLOPE and HEIGHT in their own painted textures
   T.dunes = []; for (let i = 0; i < T.slope.length; i++) if (tileKind(T, i) === "dune") T.dunes.push(i);
   setLayer(1);
   drawChar($("face").getContext("2d"), T.ares, "idle", 0, 92, 119, 1);   // ARES is on the menu too
@@ -710,7 +755,7 @@ loadBoard().then(async (t) => {
     <p class="blink">H = CLOSE</p>`;
   $("levels").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && S.state === "title") { b.blur(); start(LEVELS[+b.dataset.l]); } });
   document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }
-    b.innerHTML = `<b>${+b.dataset.l + 1} ${L.name}</b><span>${L.about}</span>${best ? `<i>BEST ${best}</i>` : ""}`; });
+    b.innerHTML = `<b><u>${+b.dataset.l + 1}</u>${L.name}</b><span>${L.about}</span>${best ? `<em>Your best score: ${best}</em>` : `<em class="none">Not played yet</em>`}`; });
   window.__game = { S, T, cost };                             // for debugging
   const crop = new URLSearchParams(location.search).get("crop");   // ?crop=x,y : show the painted board 1:1 from that tile (art review)
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
