@@ -21,7 +21,9 @@ checks itself against the route the real rover drove.
 | V | Switch between the 2D map and the 3D terrain (same game, other camera) |
 | H | How it works: data sources, the cost function, the evidence |
 | F / N | Full screen / sound on-off |
-| E | End the mission (when standing on the ship) |
+| C | 3D camera: first person / third person |
+| E | Ship computer (when standing on the wreck); the mission can be ended from there |
+| I | Show / hide the numbered legend on the map |
 
 - **EASY / NORMAL:** the green line is the cheapest, safest route. Off it, each jump burns 40% more oxygen, and steep or
   sandy ground can kill.
@@ -60,6 +62,25 @@ only the camera does. Uses three.js (MIT licence, bundled in `game/lib`).
 
 **Sound and intro.** All sound is synthesised live in the browser (`game/audio.js`); the opening cinematic is drawn
 live from the game's own art (`game/cine.js`). There are no audio or video files.
+
+## Landing sites: where the rover went, and where nothing has
+The menu offers four places for the ship to have come down (`tools/build_sites.py`, `game/data/sites.json`):
+
+- **Octavia E. Butler Landing** — Perseverance's own landing site. Pieces lie at real rover stops and show the Navcam
+  photo taken there.
+- **Three unvisited sites.** A tile counts as unvisited when it is more than 200 m from every point of the rover's real
+  traverse; 61% of the board qualifies. Sites are screened like real landing sites: under 5° of slope, firm ground, room
+  around them, reachable. Their pieces lie on unvisited ground too, so no ground photo exists; each shows a real HiRISE
+  close-up of its own tile instead (25 cm per pixel).
+
+On unvisited ground the walk is planned from orbital data alone, which is what a first crew would have. Two honest
+limits: no rover track exists there to check the route against, and the HiRISE close-ups show sand ripples on tiles
+that THEMIS, at 100 m per pixel, reads as rock. The game says both.
+
+## 3D cameras and the ship computer
+- **C** switches the 3D camera between first person (through the visor) and third person.
+- **E** at the wreck opens the ship computer: the images you have recovered, the four orbital maps, and this walk's
+  numbers. Oxygen pauses while it is open.
 
 ## How ARES answers
 ARES is not a language model. Every answer is either computed or retrieved, and each one names its source

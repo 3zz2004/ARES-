@@ -284,12 +284,12 @@ function land(to) {
   if (to === S.rover) once("rover", 1e9, () => say("Old machine. Yours? It says PERSEVERANCE. It landed right here.", "NASA's rover landed in Jezero Crater on 18 Feb 2021", 0));
   if (to === S.home && S.steps > 2) {
     if (S.parts.every((p) => p.done)) return end("home", "");
-    once("early", 8000, () => say("Back already? Pieces still out there. Press E if you must stop.", "", 0));
+    once("early", 8000, () => say("Back already? Pieces still out there. Press E for the ship computer.", "", 0));
   }
 }
 
 function end(why, cause) {
-  S.state = "end"; S.auto = false; S.jump = null; $("photo").style.display = "none"; $("legend").style.display = "none"; $("toast").style.display = "none"; S.guide = null; $("guide").style.display = "none";
+  S.state = "end"; S.auto = false; S.jump = null; S.paused = false; $("comp").style.display = "none"; $("hint").style.display = "none"; $("photo").style.display = "none"; $("legend").style.display = "none"; $("toast").style.display = "none"; S.guide = null; $("guide").style.display = "none";
   S.zoomed = why !== "home";                                  // win: pull back to show the whole walk
   S.lost = why === "home" ? null : performance.now();
   const got = S.parts.filter((p) => p.done).length, o2 = Math.max(0, 1 - S.spent / S.tank), L = S.level, R = T.rover.stats;
@@ -403,8 +403,32 @@ $("ask").addEventListener("submit", (e) => { e.preventDefault(); const q = $("q"
 $("chips").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; b.blur(); ask(b.dataset.q); });
 
 // ---------- loop ----------
+// ---------- the ship's computer: everything NASA has on this ground, in one place (E at the wreck) ----------
+function openComp() {
+  S.paused = true; A.ui(); const R = T.rover.stats, I = S.impact;
+  const shots = S.parts.map((p) => p.done
+    ? `<figure><img src="${p.stop ? p.stop.img : p.orbit.img}" alt=""><figcaption><b>${p.name}</b>${p.stop ? `Perseverance Navcam, sol ${p.stop.sol} (${p.stop.date})` : `HiRISE from orbit, ${p.orbit.far_m} m from any rover track`}</figcaption></figure>`
+    : `<figure class="locked"><div>?</div><figcaption><b>${p.name}</b>Not found yet. Its image is stored where it lies.</figcaption></figure>`).join("");
+  const map = (src, name, text) => `<figure><img src="${src}" alt=""><figcaption><b>${name}</b>${text}</figcaption></figure>`;
+  $("comp").innerHTML = `<h2>SHIP COMPUTER &middot; MISSION ARCHIVE</h2>
+    <span class="lab">Images recovered &middot; ${S.parts.filter((p) => p.done).length} of 3</span><div class="shots">${shots}</div>
+    <span class="lab">What the orbiters saw of this ground</span><div class="shots four">
+      ${map("data/board.png", "Photo", "MRO HiRISE, 25 cm per pixel")}${map("data/height.png", "Height", "HiRISE terrain model, contour every 5 m")}
+      ${map("data/slope.png", "Slope", `HiRISE terrain model; red is over ${SLOPE_LIMIT}°`)}${map("data/heat.png", "Night heat", "Mars Odyssey THEMIS; cold is sand, warm is rock")}</div>
+    <span class="lab">This walk</span><table>
+      <tr><td>Landing site</td><td>${S.site.visited ? "Octavia E. Butler Landing (visited by the rover)" : `${S.site.name.split(":")[0]} — ${S.site.far_m} m from any rover track`}</td></tr>
+      <tr><td>Oxygen left</td><td>${(Math.max(0, 1 - S.spent / S.tank) * 100).toFixed(0)}%</td></tr>
+      <tr><td>Walked</td><td>${S.walked.toFixed(0)} m, ${S.offSteps} of ${S.steps} jumps off ARES's route</td></tr>
+      ${I ? `<tr><td>Planned route vs the shortest way</td><td>${(I.save * 100).toFixed(0)}% less oxygen, danger tiles ${I.bad0} &rarr; ${I.bad1}</td></tr>` : ""}
+      <tr><td>Terrain model vs the rover's own heights</td><td>&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops</td></tr></table>
+    <div><button class="mini" id="compclose">E &middot; BACK TO THE WALK</button> <button class="mini" id="compend">END THE MISSION HERE</button></div>`;
+  $("comp").style.display = "flex";
+  $("compclose").onclick = closeComp; $("compend").onclick = () => { closeComp(); end("home", ""); };
+}
+function closeComp() { S.paused = false; $("comp").style.display = "none"; }
+
 function update(dt) {
-  if (S.state !== "play") return;
+  if (S.state !== "play" || S.paused) return;
   if (!S.jump) tryJump();
   if (S.jump) { S.jump.t += dt / JUMP_MS; if (S.jump.t >= 1) { const to = S.jump.to; S.jump = null; land(to); } }
   if (S.state !== "play") return;
@@ -532,7 +556,8 @@ function draw(now) {
     shadow(cx(ar) + 8, cy(ar) + 13, 6); shadow(ax + 8, ay + 14, 6 - lift * 0.25);
     ctx = screen;                                             // ground layer finished: hand it to the 3D view, then draw the HUD on top
     V3.render({ now, cols: T.cols, home: S.home, rover: S.rover, tanks: S.tanks, parts: S.parts, fixed, mood, mf, pose, flip: fixedFlip,
-      aresX: cx(ar) + 8, aresY: cy(ar) + 12, aresLift: ab, ax: ax + 8, ay: ay + 12, lift, zoomed: zoomedNow, qx, qy });
+      aresX: cx(ar) + 8, aresY: cy(ar) + 12, aresLift: ab, ax: ax + 8, ay: ay + 12, lift, zoomed: zoomedNow, qx, qy,
+      first: S.first, dx: S.dir === "side" ? S.face : 0, dz: S.dir === "up" ? -1 : S.dir === "down" ? 1 : 0 });
     const k = ($("c").width / (VIEW_TILES * TILE)) * 0.8;
     pin = (bx, by, up) => { const [sx, sy] = V3.project(bx, by, up); ctx.setTransform(k, 0, 0, k, sx - k * bx, sy - k * by); };
   }
@@ -565,6 +590,7 @@ function draw(now) {
   const badge = (bx, by, n, colour) => { const [px, py] = scr(bx, by, 18); if (px < 16 || py < 16 || px > CW - 16 || py > CW - 16) return;
     ctx.fillStyle = "#12060dee"; ctx.beginPath(); ctx.arc(px, py, 13, 0, 7); ctx.fill(); ctx.strokeStyle = colour; ctx.lineWidth = 2.5; ctx.stroke();
     ctx.font = "700 15px 'Chakra Petch', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = colour; ctx.fillText(n, px, py + 5.5); };
+  $("hint").style.display = S.state === "play" && !S.paused && !S.jump && S.cell === S.home && !briefing ? "block" : "none";   // standing at the wreck: the computer is one key away
   $("legend").style.display = S.tips && S.state === "play" && $("photo").style.display !== "block" ? "block" : "none";
   $("lstart").style.display = briefing ? "block" : "none";
   if (S.tips) {
@@ -586,9 +612,14 @@ function draw(now) {
 
 function toggle3d() {                        // same game, other camera: V or the 2D/3D button
   if (!V3.ready()) return say("3D is not ready on this device. Staying in 2D.", "", 1);
-  S.mode3d = !S.mode3d; $("dim").textContent = S.mode3d ? "3D" : "2D"; $("dim").classList.toggle("on", S.mode3d); A.whoosh();
+  S.mode3d = !S.mode3d; $("cam").style.display = S.mode3d ? "block" : "none"; $("dim").textContent = S.mode3d ? "3D" : "2D"; $("dim").classList.toggle("on", S.mode3d); A.whoosh();
 }
 $("dim").addEventListener("click", (e) => { e.target.blur(); toggle3d(); });
+function toggleCam() {                       // 3D only: through the visor, or behind the astronaut (C or the button)
+  if (!S.mode3d) { S.mode3d = false; toggle3d(); if (!S.mode3d) return; }
+  S.first = !S.first; $("cam").textContent = S.first ? "1ST PERSON" : "3RD PERSON"; $("cam").classList.toggle("on", S.first); A.whoosh();
+}
+$("cam").addEventListener("click", (e) => { e.target.blur(); toggleCam(); });
 
 const MOVE = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "KeyA", "KeyD", "KeyW", "KeyS"];
 addEventListener("keydown", (e) => {
@@ -605,6 +636,7 @@ addEventListener("keydown", (e) => {
   if (S.state === "video") { if (["Escape", "Enter", "Space"].includes(e.code)) endVideo(); return; }
   if (S.state === "cine") { if (["Escape", "Enter", "Space"].includes(e.code)) endCine(); return; }
   if (S.state === "intro") { if (e.code === "Escape") nextScene(true); else if (["Enter", "Space", "ArrowRight"].includes(e.code)) nextScene(); return; }
+  if (S.paused) { if (["KeyE", "Escape", "Enter"].includes(e.code)) closeComp(); return; }   // the ship computer is open
   if (e.code === "KeyH" && T) { const h = $("how"); h.style.display = h.style.display === "flex" ? "none" : "flex"; return; }
   if (S.state === "end" && e.code === "Enter") { S.state = "title"; $("debrief").style.display = "none"; $("title").style.display = "flex"; return; }
   if (S.state === "title" && T && /^(Digit[1-3]|Enter)$/.test(e.code)) return start(LEVELS[e.code === "Enter" ? 0 : +e.code.slice(-1) - 1]);
@@ -614,12 +646,13 @@ addEventListener("keydown", (e) => {
   if (e.code === "KeyR") S.showRoute = !S.showRoute;
   if (e.code === "KeyM") { S.zoomed = !S.zoomed; A.whoosh(); }
   if (e.code === "KeyV") toggle3d();
+  if (e.code === "KeyC") toggleCam();
   if (e.code === "KeyP") S.showRover = !S.showRover;
   if (e.code === "Space") {
     if (!S.level.line) say("ARES cannot plan on HARD. Your eyes, friend. SLOPE and HEAT.", "", 1);
     else { S.auto = !S.auto; if (S.auto) { replan(); S.showRoute = true; say("ARES leads. Easiest ground. Least air.", "A* route: slope + ground softness", 0); } }
   }
-  if (e.code === "KeyE" && S.cell === S.home) end("home", "");
+  if (e.code === "KeyE" && S.cell === S.home) openComp();
 });
 $("tabs").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { setLayer(+b.dataset.layer); b.blur(); } });
 addEventListener("keyup", (e) => { S.keys = S.keys.filter((k) => k !== e.code); });
@@ -771,7 +804,7 @@ loadBoard().then(async (t) => {
   $("levels").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && S.state === "title") { b.blur(); start(LEVELS[+b.dataset.l]); } });
   document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }
     b.innerHTML = `<b><u>${+b.dataset.l + 1}</u>${L.name}</b><span>${L.about}</span>${best ? `<em>Your best score: ${best}</em>` : `<em class="none">Not played yet</em>`}`; });
-  window.__game = { S, T, cost, step: update, reply };          // for debugging and tests: step(ms) advances the game without the screen
+  window.__game = { S, T, cost, step: update, reply, draw };    // for debugging and tests: step(ms) advances the game, draw(now) paints a frame
   const crop = new URLSearchParams(location.search).get("crop");   // ?crop=x,y : show the painted board 1:1 from that tile (art review)
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
     T.art.style.cssText = `position:absolute;left:${-x * ART}px;top:${-y * ART}px`; document.body.append(T.art); return; }
