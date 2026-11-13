@@ -64,7 +64,9 @@ export function paintLayers(T, tex) {
 
 export function tileKind(T, i) { return T.slope[i] > SLOPE_LIMIT ? "cliff" : T.soft[i] > 0.6 ? "dune" : T.soft[i] < 0.36 ? "slab" : "gravel"; }
 
-export function paintBoard(T, photo, tex, props) {
+// flat = true paints the ground for the 3D view: no rocks and no ledges (those become real geometry there), only their
+// shadows, and the canvas carries `rocks`: where each rock stands, in board units.
+export function paintBoard(T, photo, tex, props, flat = false) {
   const N = T.cols, W = N * ART, M = W / BLOCK, at = (x, y) => Math.max(0, Math.min(N - 1, y)) * N + Math.max(0, Math.min(N - 1, x));
 
   const tiny = canvas(N).getContext("2d"); tiny.drawImage(photo, 0, 0, N, N);       // real brightness, one value per tile
@@ -91,7 +93,7 @@ export function paintBoard(T, photo, tex, props) {
   g.imageSmoothingEnabled = true; g.globalCompositeOperation = "multiply"; g.drawImage(lit, 0, 0, W, W); g.globalCompositeOperation = "source-over";
 
   // props, back to front
-  const put = [], add = (im, cx, footY, scale) => put.push({ im, x: cx - (im.width * scale) / 2, y: footY - im.height * scale, w: im.width * scale, h: im.height * scale, z: footY });
+  const put = [], add = (im, cx, footY, scale, wall = false) => put.push({ im, x: cx - (im.width * scale) / 2, y: footY - im.height * scale, w: im.width * scale, h: im.height * scale, z: footY, rock: true, wall });
   let craters = 0, ledges = 0;
   for (let i = 0; i < N * N; i++) {
     const tx = i % N, ty = (i / N) | 0, X = tx * ART, Y = ty * ART, r = rng(i + 104729), s = T.slope[i], pick = (row) => props[row][(r() * props[row].length) | 0];
@@ -104,20 +106,26 @@ export function paintBoard(T, photo, tex, props) {
     }
     const kind = tileKind(T, i), drop = (dx, dy) => kind !== "cliff" && T.elev[i] - T.elev[at(tx + dx, ty + dy)] > LEDGE_M && (tx + dx < N) && (ty + dy < N);
     if (drop(0, 1)) { const im = props[3][0], sc = (ART * 1.06) / im.width; ledges++;      // the ground really drops to the south: a rock face
-      put.push({ im, x: X - ART * 0.03, y: Y + ART - im.height * sc * 0.42, w: im.width * sc, h: im.height * sc, z: Y + ART - 1 }); }
+      put.push({ im, x: X - ART * 0.03, y: Y + ART - im.height * sc * 0.42, w: im.width * sc, h: im.height * sc, z: Y + ART - 1, ledge: true }); }
     if (drop(1, 0)) { const im = props[3][1], sc = (ART * 1.06) / im.height; ledges++;     // ...or to the east
-      put.push({ im, x: X + ART - im.width * sc * 0.45, y: Y - ART * 0.03, w: im.width * sc, h: im.height * sc, z: Y + ART - 2 }); }
+      put.push({ im, x: X + ART - im.width * sc * 0.45, y: Y - ART * 0.03, w: im.width * sc, h: im.height * sc, z: Y + ART - 2, ledge: true }); }
     if (kind !== "cliff" && s < 5 && r() < 0.045) {                                         // small ground details that match the surface
       const im = props[6][kind === "dune" ? 0 : kind === "slab" ? 1 : 2], sc = 0.2;
       put.push({ im, x: X + ART / 2 - (im.width * sc) / 2, y: Y + ART / 2 - (im.height * sc) / 2, w: im.width * sc, h: im.height * sc, z: 0 }); continue; }
-    if (kind === "cliff") add(pick(2), X + ART / 2 + (r() - 0.5) * 10, Y + ART * 0.98, 0.3);
+    if (kind === "cliff") add(pick(2), X + ART / 2 + (r() - 0.5) * 10, Y + ART * 0.98, 0.3, true);
     else if (s > 10) add(pick(1), X + ART * (0.3 + r() * 0.4), Y + ART * (0.6 + r() * 0.35), 0.34);
     else if (s > 7.5) { if (r() < 0.55) add(pick(1), X + ART * (0.3 + r() * 0.4), Y + ART * (0.55 + r() * 0.4), 0.25); else add(pick(0), X + ART * (0.25 + r() * 0.5), Y + ART * (0.4 + r() * 0.5), 0.42); }
     else if (s > 5 && r() < 0.45) add(pick(0), X + ART * (0.25 + r() * 0.5), Y + ART * (0.4 + r() * 0.5), 0.38);
     else if (r() < 0.05) add(pick(0), X + ART * (0.25 + r() * 0.5), Y + ART * (0.4 + r() * 0.5), 0.3);
   }
   put.sort((a, b) => a.z - b.z);
-  for (const p of put) g.drawImage(p.im, p.x, p.y, p.w, p.h);
+  for (const p of put) {
+    if (flat && p.ledge) continue;                       // 3D: the mesh itself shows the drop
+    if (flat && p.rock) { g.fillStyle = "rgba(30,10,24,0.42)"; g.beginPath(); g.ellipse(p.x + p.w / 2 + p.w * 0.12, p.y + p.h * 0.84, p.w * 0.56, p.w * 0.26, 0, 0, 7); g.fill(); continue; }   // 3D: only the rock's shadow
+    g.drawImage(p.im, p.x, p.y, p.w, p.h);
+  }
+  const u = ART / TS;                                    // art pixels per board unit
+  art.rocks = put.filter((p) => p.rock).map((p) => ({ x: (p.x + p.w / 2) / u, y: (p.y + p.h * 0.8) / u, w: p.w / u, wall: p.wall }));
   console.info(`board painted: ${put.length} props, ${craters} craters from DTM hollows, ${ledges} ledges from DTM drops`);
   return art;
 }
