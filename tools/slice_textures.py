@@ -35,11 +35,12 @@ def main():
     im = Image.open(sheet).convert("RGB")
     a = np.asarray(im).astype(np.int16)
     ink = ~((a.min(2) > 235) & ((a.max(2) - a.min(2)) < 12))
-    rows, cols = runs(ink.mean(1) > 0.5), runs(ink.mean(0) > 0.5)
-    print("grid", len(rows), "x", len(cols))
+    rows = runs(ink.mean(1) > 0.5)
     os.makedirs(out, exist_ok=True)
     k = 0
     for y0, y1 in rows:
+        cols = runs(ink[y0:y1].mean(0) > 0.5)             # columns are found inside each row band (sheets may have empty margins)
+        print("row", y0, y1, "->", len(cols), "swatches")
         for x0, x1 in cols:
             s = min(y1 - y0, x1 - x0) - 8
             sw = im.crop((x0 + 4, y0 + 4, x0 + 4 + s, y0 + 4 + s)).resize((SIZE, SIZE), Image.LANCZOS)
