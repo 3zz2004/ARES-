@@ -112,6 +112,12 @@
   #gstep { font-weight:normal; background:var(--o2); border-radius:.6em; padding:.3em .6em; font-size:.8em; flex:none; } #gtext { flex:1; font-size:.9em; line-height:1.8; }
   #gskip { background:#2e1424; color:#fff6e6; font-size:.65em; flex:none; padding:.6em .8em; }
   #debrief, #how { display:none; } #how { background:#170a12f7; font-size:.88em; } #how p { margin:.4em 0; } #how td:first-child { color:var(--dim); }
+  #title .lab { margin-top:.5em; }
+  #sites { display:grid; grid-template-columns:repeat(4, 1fr); gap:.5em; width:94%; margin:.4em 0 .2em; }
+  #sites button { font-family:inherit; text-align:left; padding:.55em .7em; color:var(--ink); background:#ffffff0a; border:1px solid #ffffff24; border-radius:.7em; transition:border-color .12s, background .12s; }
+  #sites button:hover { border-color:#fff; } #sites button.on { border-color:var(--warn); background:#ffcf4a1c; box-shadow:0 0 0 1px var(--warn); }
+  #sites b { display:block; font-size:.74em; font-weight:700; color:#fff; } #sites span { display:block; margin-top:.25em; font-size:.5em; font-weight:600; letter-spacing:.06em; color:var(--dim); } #sites span.new { color:var(--o2); }
+  #siteabout { margin:.1em 0 .3em; font-size:.66em; color:var(--dim); min-height:1.5em; }
   #levels { display:grid; grid-template-columns:repeat(3, 1fr); gap:.7em; width:94%; margin:.7em 0 .6em; }
   #levels button { font-family:inherit; text-align:left; padding:.8em .9em; color:var(--ink); background:linear-gradient(180deg, #2a1422, #180b14); border:1px solid #ffffff24; border-radius:.8em; box-shadow:0 .4em 1.2em #0007; transition:transform .12s, border-color .12s; }
   #levels button:hover { border-color:var(--warn); transform:translateY(-.15em); }
@@ -171,6 +177,10 @@
       <h1>ARES</h1>
       <h2>STRANDED IN JEZERO CRATER</h2>
       <p>A traveller from another star has crashed on Mars.<br>Find the 3 lost pieces of the ship<br>and get back before your oxygen runs out.</p>
+      <span class="lab">1 &middot; Where did the ship come down?</span>
+      <div id="sites"></div>
+      <p id="siteabout"></p>
+      <span class="lab">2 &middot; How hard?</span>
       <div id="levels"><button data-l="0"></button><button data-l="1"></button><button data-l="2"></button></div>
       <p class="blink">Choose a level: press 1, 2 or 3</p>
       <div><button id="watch" class="mini">&#9654; WATCH INTRO</button> <button id="replay" class="mini">? HOW TO PLAY</button></div>
