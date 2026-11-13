@@ -37,6 +37,7 @@ async function loadBoard() {
   await Promise.all(Object.entries(names).map(async ([k, f]) => { items[k] = await image(`assets/items/${f}.png`); }));
   const rover = await json("data/rover.json");
   KB.index(await json("data/knowledge.json"));               // what ARES can look up (see ares.js)
+  pack.sites = await json("data/sites.json");                // landing sites: the rover's own, and ground no rover has reached
   return { ...pack, img, height, tex, props, items, rover, astro: { img: astro, ...astroMeta }, ares: { img: ares, ...aresMeta } };
 }
 function overlay(t, colour) {               // one pixel per tile, scaled up when drawn
@@ -160,12 +161,15 @@ const FACTS = {
 function start(level = S.level ?? LEVELS[0]) {
   S.level = level; S.tap = null; S.keys = [];                 // forget keys pressed on the menu or in the intro
   A.unlock(); A.music(true); A.whoosh();
-  S.home = nearestPassable(20, 20);                         // crash site = Octavia E. Butler Landing, where Perseverance touched down (board centre)
-  // The pieces lie at real places where Perseverance stopped and took a photo.
-  const stops = T.rover.stops.map((s) => ({ ...s, cell: nearestPassable(s.x, s.y) })).filter((s) => dist(s.cell, S.home) >= 5);
-  const order = level.shuffle ? stops.map((s) => [Math.random(), s]).sort((a, b) => a[0] - b[0]).map((x) => x[1]) : [...stops].sort((a, b) => dist(a.cell, S.home) - dist(b.cell, S.home));
-  S.parts = ["Fuel cell", "Navigation core", "Hull plate"].map((name, k) => ({ name, cell: order[k].cell, stop: order[k], done: false }));
-  S.rover = nearestPassable(22, 21, [S.home, ...S.parts.map((p) => p.cell)]);
+  const site = T.sites.sites[S.siteN ?? 0]; S.site = site;  // where the ship came down: the rover's landing site, or ground no rover has reached
+  S.home = nearestPassable(site.x, site.y);
+  const NAMES = ["Fuel cell", "Navigation core", "Hull plate"];
+  if (site.visited) {                                       // pieces lie at real places where Perseverance stopped and took a photo
+    const stops = T.rover.stops.map((s) => ({ ...s, cell: nearestPassable(s.x, s.y) })).filter((s) => dist(s.cell, S.home) >= 5);
+    const order = level.shuffle ? stops.map((s) => [Math.random(), s]).sort((a, b) => a[0] - b[0]).map((x) => x[1]) : [...stops].sort((a, b) => dist(a.cell, S.home) - dist(b.cell, S.home));
+    S.parts = NAMES.map((name, k) => ({ name, cell: order[k].cell, stop: order[k], done: false }));
+  } else S.parts = NAMES.map((name, k) => ({ name, cell: nearestPassable(site.parts[k].x, site.parts[k].y), orbit: site.parts[k], done: false }));   // unvisited ground: only orbital close-ups exist
+  S.rover = nearestPassable(22, 21, [S.home, ...S.parts.map((p) => p.cell)]);   // the rover stays where it really landed
   Object.assign(S, { cell: S.home, prev: S.home, jump: null, spent: 0, walked: 0, maxSlope: 0, steps: 0, offSteps: 0, got: 0,
     auto: false, state: "play", face: 1, dir: "down", zoomed: true, view: T.cols, camX: BOARD / 2, camY: BOARD / 2, tracks: [], puffs: [], quake: null, bubble: null, happy: -1e9, lost: null, shake: null, float: null, tanks: [], devil: { x: 30, y: 8, tx: 30, ty: 8 } });
   for (const k in cool) delete cool[k];
@@ -186,13 +190,14 @@ function start(level = S.level ?? LEVELS[0]) {
   const row = (n, colour, title, text) => `<li><i style="border-color:${colour};color:${colour}">${n}</i><div><b>${title}</b>${text}</div></li>`;
   $("lrows").innerHTML = (level.line ? row(1, "#39e66b", "ARES's route", I ? `Planned with A* on NASA's slope and heat data. ${(I.save * 100).toFixed(0)}% less oxygen than the shortest way.` : "Planned with A* on NASA's slope and heat data.") : "")
     + row(2, "#ffffff", "Perseverance's real drive", "Where NASA's rover actually went. It kept to gentle ground too.")
-    + row(3, "#ffcf4a", "Ship piece (+100)", "Lies at a real rover stop. You get the photo NASA took there.")
+    + row(3, "#ffcf4a", "Ship piece (+100)", site.visited ? "Lies at a real rover stop. You get the photo NASA took there." : "On ground no rover has reached. You get NASA's close-up from orbit.")
     + row(4, "#4ff0d0", "Air tank (+25% oxygen)", "On steep or sandy ground. Worth the risk?")
     + row(5, "#ff7a59", "The wreck", "Bring all three pieces back before the air runs out.");
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
   S.showRover = true;
   $("title").style.display = "none"; $("debrief").style.display = "none"; $("how").style.display = "none"; $("photo").style.display = "none"; $("log").textContent = ""; S.type = null;
   say("Friend! ARES was going home. Far star. Ship broke over this crater. Fell here.", "", 2);
+  if (!site.visited) say(`No rover ever came here. The nearest track is ${site.far_m} metres away. No photos from the ground. Only eyes from orbit. We read them well.`, `unvisited = more than ${T.sites.unvisited_m} m from NASA's rover traverse`, 1);
   if (level.line) say("Three ship pieces out there. ARES cannot walk far. You walk. Green line = safest way. ARES counted every slope.", "SPACE = follow the line · or jump on your own", 0);
   else say("Three ship pieces out there. ARES is too hurt to plan a way. Read the ground yourself: SLOPE and HEAT. The white dots are where your rover drove.", "keys 4 and 5", 0);
   say("Blue tanks = spare air. They fell on bad ground. Steep or sandy ground can kill.", "", 0);
@@ -267,8 +272,13 @@ function land(to) {
     say(left ? `${p.name}! Good good good! ${left} more.` : `${p.name}! All three! ARES can fly home! Back to ship!`, "", 2);
     say(fact, `${src} · here: ${s.toFixed(1)}° slope, ${T.elev[to].toFixed(0)} m`, 0);
     S.pop = { cell: to, t0: performance.now(), colour: "#ffcf4a", dx: 150, lines: [`${p.name.toUpperCase()}  +100`, `${left ? left + " more to find" : "all found: go home!"}`, "real NASA photo: bottom left"] };
-    $("shot").src = p.stop.img;                                // the real view from this spot
-    $("cap").textContent = `What Perseverance saw from here — Sol ${p.stop.sol}, ${p.stop.date}. Image: ${p.stop.credit}`;
+    if (p.stop) {                                             // the real view from this spot
+      $("ptag").textContent = "REAL NASA PHOTO · TAKEN AT THIS SPOT"; $("shot").src = p.stop.img;
+      $("cap").textContent = `What Perseverance saw from here — Sol ${p.stop.sol}, ${p.stop.date}. Image: ${p.stop.credit}`;
+    } else {                                                  // nobody has stood here: all that exists is the view from orbit
+      $("ptag").textContent = "REAL NASA IMAGE FROM ORBIT · NO ROVER HAS BEEN HERE"; $("shot").src = p.orbit.img;
+      $("cap").textContent = `HiRISE close-up of this tile, 25 cm per pixel (${p.orbit.lat}° N, ${p.orbit.lon}° E). Nearest rover track: ${p.orbit.far_m} m. THEMIS reads this tile as ${surface(to)} — its pixels are 100 m, so look for what they miss. Image: NASA/JPL-Caltech/Univ. of Arizona`;
+    }
     $("photo").style.display = "block"; clearTimeout(S.photoT); S.photoT = setTimeout(() => ($("photo").style.display = "none"), 9000);
   }
   if (to === S.rover) once("rover", 1e9, () => say("Old machine. Yours? It says PERSEVERANCE. It landed right here.", "NASA's rover landed in Jezero Crater on 18 Feb 2021", 0));
@@ -289,7 +299,7 @@ function end(why, cause) {
     : S.offSteps <= S.steps * 0.1 ? ["BEST-PRACTICE PATH", "All pieces, on ARES's line. ARES goes home."]
     : ["UNEXPECTED PATH", "All pieces — and you survived your own detours."];
   const score = why === "home" ? Math.round((got * 100 + o2 * 300 + S.got * 30) * L.bonus) : got * 50;
-  const key = "ares-best-" + L.name; let best = 0;
+  const key = "ares-best-" + L.name + (S.site.visited ? "" : "-" + S.site.id); let best = 0;
   try { best = +localStorage.getItem(key) || 0; if (score > best) localStorage.setItem(key, score); } catch { /* private mode */ }
   if (why === "home" && got === 3) A.win(); else if (why === "home") chirp(0); else A.die();
   A.music(false);
@@ -306,7 +316,7 @@ function end(why, cause) {
     <tr><td>SCORE</td><td>${score}${score > best && score ? " NEW BEST!" : best ? ` (best ${best})` : ""}</td></tr></table>
     ${S.impact ? `<div class="why"><b>IMPACT</b> On this walk, planning with NASA's slope and night-heat data instead of taking the shortest way means <b>${(S.impact.save * 100).toFixed(0)}% less oxygen</b>, <b>${S.impact.bad0 - S.impact.bad1} fewer danger tiles</b> and accident odds cut from <b>${(S.impact.odds0 * 100).toFixed(0)}% to ${(S.impact.odds1 * 100).toFixed(0)}%</b>. The same reading of the ground keeps real rovers alive — and will guide the first crews.</div>` : ""}
     <p class="blink">ENTER = MENU</p>
-    <small>CHECKED AGAINST THE REAL ROVER: Perseverance drove this same ground on sols ${R.drive_sols[0]}–${R.drive_sols[1]}. Its tiles average ${R.rover_mean_slope}&deg; of slope against ${R.board_mean_slope}&deg; for the whole board, and it never crossed a tile over our ${SLOPE_LIMIT}&deg; limit.
+    <small>${S.site.visited ? "" : `UNVISITED GROUND: this walk started ${S.site.far_m} m from the nearest rover track, planned from orbital data alone. No rover has checked this ground; the terrain model was checked where the rover did drive.<br>`}CHECKED AGAINST THE REAL ROVER: Perseverance drove this same ground on sols ${R.drive_sols[0]}–${R.drive_sols[1]}. Its tiles average ${R.rover_mean_slope}&deg; of slope against ${R.board_mean_slope}&deg; for the whole board, and it never crossed a tile over our ${SLOPE_LIMIT}&deg; limit.
     Our terrain model matches the elevations the rover reported to within ${R.dem_vs_rover_elev_std_m} m.<br>
     DATA: MRO HiRISE DTM (USGS) | Mars Odyssey THEMIS night IR and HiRISE mosaic (JPL Mars Trek) | Mars 2020 traverse and Navcam images (NASA/JPL-Caltech)</small>`;
   const won = why === "home" && got === 3;                    // a win holds on the repaired ship for a moment before the scores
@@ -362,7 +372,7 @@ function reply(q) {
   if (/next|piece|part\b|direction|which way|get to|lead me|guide me/.test(q)) {
     if (!left.length) { const w = wayTo(S.home); return [`All three found. To the ship: ${go(w)} It costs ${pct(w.cost)}% air.`, SRC, NAV]; }
     const w = nearest(left.map((p) => p.cell)), p = left.find((x) => x.cell === w.cell);
-    return [`${p.name}: ${go(w)} It costs ${pct(w.cost)}% air. It lies on ${surface(p.cell)}, where the rover stopped on sol ${p.stop.sol}.`, SRC, ["Is it safe around me?", "Do I have enough air?", "What are the photos I find?"]];
+    return [`${p.name}: ${go(w)} It costs ${pct(w.cost)}% air. It lies on ${surface(p.cell)}, ${p.stop ? `where the rover stopped on sol ${p.stop.sol}` : `${p.orbit.far_m} m from any rover track`}.`, SRC, ["Is it safe around me?", "Do I have enough air?", "What are the photos I find?"]];
   }
   // 2. your tank and the ground around you
   if (/enough|\b(air|oxygen|o2)\b.*\b(left|have|much)\b|\bhow much (air|oxygen)/.test(q)) { const plan = planTour(T, cost, i, left.map((p) => p.cell), S.home), need = plan ? plan.cost / S.tank : 1;
@@ -753,10 +763,15 @@ loadBoard().then(async (t) => {
     KEYS: arrows jump · SPACE follow the line · V 2D/3D · M whole map · P rover path · 1-5 layers · F full screen · N sound · E end at the ship<br>
     The story, the oxygen tank, the accident chances and the dust devil are game design, not measurements.<br>The limit and the weights in the cost are our choices. Art was made with AI tools; all terrain data is NASA / USGS.</small>
     <p class="blink">H = CLOSE</p>`;
+  // landing-site picker: the rover's own site, or ground no rover has reached
+  const pickSite = (n) => { S.siteN = n; document.querySelectorAll("#sites button").forEach((b, k) => b.classList.toggle("on", k === n)); $("siteabout").textContent = T.sites.sites[n].about; };
+  $("sites").innerHTML = T.sites.sites.map((s, k) => `<button data-s="${k}"><b>${s.visited ? "Rover's landing site" : s.name.split(":")[0]}</b><span class="${s.visited ? "" : "new"}">${s.visited ? "VISITED BY PERSEVERANCE" : "NEVER VISITED · " + s.far_m + " m from any track"}</span></button>`).join("");
+  $("sites").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { b.blur(); A.unlock(); A.ui(); pickSite(+b.dataset.s); } });
+  pickSite(0);
   $("levels").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && S.state === "title") { b.blur(); start(LEVELS[+b.dataset.l]); } });
   document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }
     b.innerHTML = `<b><u>${+b.dataset.l + 1}</u>${L.name}</b><span>${L.about}</span>${best ? `<em>Your best score: ${best}</em>` : `<em class="none">Not played yet</em>`}`; });
-  window.__game = { S, T, cost };                             // for debugging
+  window.__game = { S, T, cost, step: update, reply };          // for debugging and tests: step(ms) advances the game without the screen
   const crop = new URLSearchParams(location.search).get("crop");   // ?crop=x,y : show the painted board 1:1 from that tile (art review)
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
     T.art.style.cssText = `position:absolute;left:${-x * ART}px;top:${-y * ART}px`; document.body.append(T.art); return; }
