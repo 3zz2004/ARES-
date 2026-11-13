@@ -33,7 +33,43 @@ function frame(s, anim, f, flip) {
 }
 const place = (s, bx, by, lift = 0) => s.position.set(bx, heightAt(bx, by) + lift, by);
 
-export async function init(T, canvas, art, veilCanvas) {
+// A boulder: a lumpy, faceted stone with a flat underside. Three shapes are enough to stop them looking alike.
+function rockShape(seed) {
+  const g = new THREE.IcosahedronGeometry(1, 1), p = g.attributes.position, q = new THREE.Vector3();
+  const bump = (x, y, z) => { const s = Math.sin(x * 12.9898 + y * 78.233 + z * 37.719 + seed * 4.7) * 43758.5453; return s - Math.floor(s); };
+  for (let i = 0; i < p.count; i++) {                    // the same corner always moves the same way, so faces stay joined
+    q.fromBufferAttribute(p, i); const k = 0.72 + 0.5 * bump(Math.round(q.x * 50), Math.round(q.y * 50), Math.round(q.z * 50));
+    q.multiplyScalar(k); q.y = Math.max(q.y, -0.25) * 0.85; p.setXYZ(i, q.x, q.y, q.z);
+  }
+  g.computeVertexNormals(); return g;
+}
+
+// Real stones standing on the terrain, exactly where the 2D board paints them (so: where the slope data puts them).
+function buildRocks(rocks, image) {
+  const tex = new THREE.Texture(image); tex.colorSpace = THREE.SRGBColorSpace; tex.wrapS = tex.wrapT = THREE.RepeatWrapping; tex.repeat.set(0.55, 0.55); tex.needsUpdate = true;
+  const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 1, metalness: 0, flatShading: true });
+  const list = [];
+  rocks.forEach((r, n) => {                               // a rock wall is a pile; everything else is one stone
+    const rnd = (k) => { const s = Math.sin((n + 1) * 91.7 + k * 17.3) * 43758.5453; return s - Math.floor(s); };
+    if (!r.wall) return list.push({ x: r.x, z: r.y, s: r.w * 0.5, h: 0.62 + rnd(1) * 0.45, rot: rnd(2) * 6.28, shade: 0.82 + rnd(3) * 0.3 });
+    for (let k = 0; k < 4; k++) list.push({ x: r.x + (rnd(k + 4) - 0.5) * 11, z: r.y - 7 + (rnd(k + 9) - 0.5) * 10, s: 5 + rnd(k + 14) * 4.5, h: 0.9 + rnd(k + 19) * 0.9, rot: rnd(k + 24) * 6.28, shade: 0.66 + rnd(k + 29) * 0.26 });
+  });
+  const m4 = new THREE.Matrix4(), pos = new THREE.Vector3(), quat = new THREE.Quaternion(), scl = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), col = new THREE.Color();
+  for (let shape = 0; shape < 3; shape++) {
+    const mine = list.filter((_, i) => i % 3 === shape), mesh = new THREE.InstancedMesh(rockShape(shape + 1), mat, mine.length);
+    mine.forEach((r, i) => {
+      pos.set(r.x, heightAt(r.x, r.z) + r.s * 0.12, r.z); quat.setFromAxisAngle(up, r.rot); scl.set(r.s, r.s * r.h, r.s * (0.8 + 0.4 * ((i * 7) % 5) / 5));
+      mesh.setMatrixAt(i, m4.compose(pos, quat, scl)); mesh.setColorAt(i, col.setScalar(r.shade));
+    });
+    mesh.instanceMatrix.needsUpdate = true; if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+    scene.add(mesh);
+  }
+  scene.add(new THREE.HemisphereLight(0xffd9b0, 0x5a2030, 1.15));                       // warm sky, dark red bounce from the ground
+  const sun = new THREE.DirectionalLight(0xfff0d8, 2.1); sun.position.set(-260, 420, -220); scene.add(sun);   // upper left, like the painted board
+  return list.length;
+}
+
+export async function init(T, canvas, art, veilCanvas, rocks = [], rockImage = null) {
   const hm = T.heightmap, buf = await (await fetch(hm.file)).arrayBuffer();
   H = new Uint16Array(buf); HN = hm.size; hScale = ((hm.max_m - hm.min_m) / 65535) * (BOARD / (T.cell_m * T.cols)) * EXAG;
   R = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true }); R.setPixelRatio(1); R.setSize(W, W, false);
@@ -53,6 +89,7 @@ export async function init(T, canvas, art, veilCanvas) {
   const wall = new THREE.MeshBasicMaterial({ color: 0x4a1c26 });                         // the cut edge of the block of terrain
   for (const [x, z, rot] of [[320, 0, 0], [320, 640, 0], [0, 320, 1], [640, 320, 1]]) { const m = new THREE.Mesh(new THREE.PlaneGeometry(640, 2), wall); m.position.set(x, 0, z); m.rotation.y = rot * Math.PI / 2; m.material.side = THREE.DoubleSide; scene.add(m); }
 
+  if (rocks.length && rockImage) console.info(`3D view: ${buildRocks(rocks, rockImage)} stones standing on the terrain`);
   spr.wreck = sprite(T.items.wreck, 46); spr.ship = sprite(T.items.ship, 46); spr.rover = sprite(T.items.rover, 26);
   spr.tanks = [0, 1, 2, 3].map(() => sprite(T.items.tank, 10)); spr.parts = [0, 1, 2].map((k) => sprite(T.items["part" + k], k === 2 ? 20 : 15));
   spr.ares = sheetSprite(T.ares, 0.19 * 0.85); spr.astro = sheetSprite(T.astro, 0.19);

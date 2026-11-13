@@ -687,7 +687,8 @@ loadBoard().then(async (t) => {
   T.dunes = []; for (let i = 0; i < T.slope.length; i++) if (tileKind(T, i) === "dune") T.dunes.push(i);
   setLayer(1);
   drawChar($("face").getContext("2d"), T.ares, "idle", 0, 92, 119, 1);   // ARES is on the menu too
-  V3.init(T, $("c3"), T.art, veil).catch((e) => console.warn("3D view unavailable:", e));   // 2D never depends on this
+  const ground3d = paintBoard(T, T.img, T.tex, T.props, true);   // the same board without rocks: in 3D they are real geometry
+  V3.init(T, $("c3"), ground3d, veil, ground3d.rocks, T.tex[5]).catch((e) => console.warn("3D view unavailable:", e));   // 2D never depends on this
   const R = T.rover.stats;                                    // the "how it works" page is filled from the real numbers
   $("how").innerHTML = `<h2>HOW IT WORKS</h2>
     <table>
