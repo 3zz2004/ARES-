@@ -105,7 +105,8 @@ export function drawCine(g, state, T, onEnd) {
     if (t > 26900 && t < 27300) { g.fillStyle = `rgba(255,255,255,${1 - (t - 26900) / 400})`; g.fillRect(0, 0, W, H); }
     g.textAlign = "center"; g.globalAlpha = seg(t, 27400, 28400);
     g.font = "30px 'Press Start 2P', monospace"; g.fillStyle = "#4ff0d0"; g.fillText("A JEZERO MARSWALK", W / 2, 420);
-    g.font = "17px 'Press Start 2P', monospace"; g.fillStyle = "#fff1dc"; g.fillText("Every slope is real NASA data of Jezero Crater, Mars", W / 2, 480); g.globalAlpha = 1;
+    g.font = "17px 'Press Start 2P', monospace"; g.fillStyle = "#fff1dc"; g.fillText("Read real NASA data of Mars. Plan the walk.", W / 2, 478);
+    g.globalAlpha = seg(t, 28300, 29300); g.fillStyle = "#ffcf4a"; g.fillText("The right route saves oxygen. It saves lives.", W / 2, 520); g.globalAlpha = 1;
   }
   const v = g.createRadialGradient(W / 2, H / 2, 260, W / 2, H / 2, 820); v.addColorStop(0, "rgba(10,4,10,0)"); v.addColorStop(1, "rgba(10,4,10,0.8)"); g.fillStyle = v; g.fillRect(0, 0, W, H);
   g.fillStyle = "#000"; g.fillRect(0, 0, W, 64); g.fillRect(0, H - 64, W, 64);                                     // letterbox

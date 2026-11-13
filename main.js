@@ -1,5 +1,5 @@
 import { makeCost, planTour, astar, SLOPE_LIMIT } from "./astar.js";
-import { paintBoard, tileKind, TS, ART, TEXTURES } from "./tiles.js";
+import { paintBoard, paintLayers, tileKind, TS, ART, TEXTURES, LAYER_TEX } from "./tiles.js";
 import * as A from "./audio.js";
 import { startCine, drawCine } from "./cine.js";
 import * as V3 from "./view3d.js";
@@ -30,6 +30,8 @@ async function loadBoard() {
   const [pack, img, height, astro, astroMeta, ares, aresMeta, propSizes, tex] = await Promise.all([json("data/board.json"), image("data/board.png"), image("data/height.png"),
     image("assets/astro.png"), json("assets/astro.json"), image("assets/ares.png"), json("assets/ares.json"), json("assets/props/props.json"),
     Promise.all(TEXTURES.map((n) => image(`assets/tex/${n}.png`)))]);
+  const ltex = {}; await Promise.all(Object.entries(LAYER_TEX).map(async ([k, names]) => { ltex[k] = await Promise.all(names.map((n) => image(`assets/tex/${n}.png`))); }));
+  pack.ltex = ltex;
   const props = await Promise.all(propSizes.map((row, r) => Promise.all(row.map((_, c) => image(`assets/props/${r}_${c}.png`)))));
   const names = { wreck: "0_0", ship: "0_1", part0: "2_0", part1: "2_1", part2: "2_3", tank: "2_4", rover: "3_0" }, items = {};
   await Promise.all(Object.entries(names).map(async ([k, f]) => { items[k] = await image(`assets/items/${f}.png`); }));
@@ -51,9 +53,9 @@ const thermalColour = (t) => (i) => { const w = 1 - t.soft[i];   // warm at nigh
 const LAYERS = {
   1: () => ["linear-gradient(90deg,#8c4a66,#ac5454,#c66c48,#dc8a4e,#eeae66)", "LOW", "HIGH", "Drawn from the data: ripples = loose sand, cracked slabs = bedrock, boulders = steep."],
   2: () => ["linear-gradient(90deg,#3e1c64,#b03e78,#d4582c,#f6be32)", "LOW", "HIGH", "The real HiRISE photo of this exact ground."],
-  3: (t) => [`linear-gradient(90deg, ${t.palette.join(",")})`, t.elev_range_m[0].toFixed(0) + " m", t.elev_range_m[1].toFixed(0) + " m", "Elevation from the HiRISE DTM."],
-  4: () => ["linear-gradient(90deg,#3cdc82,#ffe13c,#ff8c1e,#ff1e3c)", "FLAT", `>${SLOPE_LIMIT}° NO-GO`, "Slope. Steeper = more oxygen, more danger."],
-  5: () => ["linear-gradient(90deg,#1e46ff,#ff7828)", "COLD: SAND", "WARM: ROCK", "THEMIS night heat. Cold ground is loose sand."],
+  3: (t) => ["linear-gradient(90deg,#4a2a9a,#a0286e,#c83a3a,#e8702a,#f2a83a,#fbe2b0)", t.elev_range_m[0].toFixed(0) + " m", t.elev_range_m[1].toFixed(0) + " m", "Real elevation (HiRISE). Purple is the lowest ground, cream the highest."],
+  4: () => ["linear-gradient(90deg,#3cdc82 0 25%,#ffd23c 25% 50%,#ff8c1e 50% 75%,#ff2a3c 75%)", "FLAT", `OVER ${SLOPE_LIMIT}°`, `Real slope (HiRISE). Green under 5°, yellow to 10°, orange to ${SLOPE_LIMIT}°, red cannot be crossed.`],
+  5: () => ["linear-gradient(90deg,#2a2a9a,#2a90a0,#7a5a90,#d87830,#ff4a20)", "COLD: SAND", "WARM: ROCK", "Night heat (THEMIS). Cold ground is loose sand, warm ground is solid rock."],
 };
 function setLayer(n) {
   if (S.layer !== n) A.ui();
@@ -169,6 +171,17 @@ function start(level = S.level ?? LEVELS[0]) {
   replan();
   S.optimal = S.route ? S.route.cost : 0; S.tank = S.optimal * level.margin;
   S.tanks = placeTanks(S.onRoute);
+  // IMPACT: what planning with the data is worth, against simply walking the shortest way and ignoring the ground.
+  const naive = planTour(T, { passable: cost.passable, step: () => T.cell_m }, S.cell, S.parts.map((p) => p.cell), S.home);
+  const use = (path) => path.slice(1).reduce((sum, i) => sum + cost.step(i), 0), bad = (path) => path.filter((i) => cost.risk(i) > 0).length;
+  const odds = (path) => 1 - path.slice(1).reduce((p, i) => p * (1 - cost.risk(i)), 1);
+  S.impact = naive && S.route ? { save: 1 - S.optimal / use(naive.path), bad0: bad(naive.path), bad1: bad(S.route.path), odds0: odds(naive.path), odds1: odds(S.route.path),
+    m0: (naive.path.length - 1) * T.cell_m, m1: (S.route.path.length - 1) * T.cell_m } : null;
+  const I = S.impact;
+  $("impact").innerHTML = I ? `<span class="lab">Impact of planning with NASA data &middot; vs the shortest way</span><div class="tiles">
+    <div><b>&minus;${(I.save * 100).toFixed(0)}%</b><span>oxygen used</span></div>
+    <div><b><s>${I.bad0} &rarr;</s> ${I.bad1}</b><span>danger tiles</span></div>
+    <div><b><s>${(I.odds0 * 100).toFixed(0)}% &rarr;</s> ${(I.odds1 * 100).toFixed(0)}%</b><span>accident odds</span></div></div>` : "";
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
   S.showRover = true;
   $("title").style.display = "none"; $("debrief").style.display = "none"; $("how").style.display = "none"; $("photo").style.display = "none"; $("log").textContent = ""; S.type = null;
@@ -176,6 +189,9 @@ function start(level = S.level ?? LEVELS[0]) {
   if (level.line) say("Three ship pieces out there. ARES cannot walk far. You walk. Green line = safest way. ARES counted every slope.", "SPACE = follow the line · or jump on your own", 0);
   else say("Three ship pieces out there. ARES is too hurt to plan a way. Read the ground yourself: SLOPE and HEAT. The white dots are where your rover drove.", "keys 4 and 5", 0);
   say("Blue tanks = spare air. They fell on bad ground. Steep or sandy ground can kill.", "", 0);
+  if (I) say(level.line ? `Why follow my line? The short way crosses ${I.bad0} danger tiles. Mine crosses ${I.bad1}, and burns ${(I.save * 100).toFixed(0)}% less air. Data saves lives.`
+    : `No line today. But know this: a planned way here burns ${(I.save * 100).toFixed(0)}% less air than the short way, and crosses ${I.bad1} danger tiles, not ${I.bad0}. Read the maps.`, "A* on real slope and night-heat data vs the shortest path", 0);
+  S.brief = performance.now() + 9000; S.tips = true; S.pop = null;   // open on the whole map with every label showing
   let guided = false; try { guided = !!localStorage.getItem("ares-guided"); } catch { /* private mode */ }
   if (!guided && level.line) startGuide(); else { S.guide = null; $("guide").style.display = "none"; }   // first game: ARES explains the controls
 }
@@ -225,6 +241,7 @@ function land(to) {
       const cause = s / SLOPE_LIMIT > soft ? `Slipped on a ${s.toFixed(0)}° slope and tore the suit.` : "Sank into loose sand and could not climb out.";
       return end("dead", cause);
     }
+    if (line) once("offpop", 9000, () => (S.pop = { cell: to, t0: performance.now(), colour: "#ff4d6d", lines: ["OFF ARES'S ROUTE", `+${Math.round((OFF_PENALTY - 1) * 100)}% oxygen per jump`, `${(cost.risk(to) * 100).toFixed(0)}% accident odds here`] }));
     if (line) once("off", 14000, () => say(`Off the green line! Air burns ${Math.round((OFF_PENALTY - 1) * 100)}% faster. Here: ${s.toFixed(0)}° slope, ${surface(to)} — ${(cost.risk(to) * 100).toFixed(0)}% death chance each jump.`, "risk grows with slope and loose sand", 1));
     else if (cost.risk(to) > 0) once("bad", 9000, () => say(`Bad ground! ${s.toFixed(0)}° slope, ${surface(to)}. ${(cost.risk(to) * 100).toFixed(0)}% death chance each jump. Check SLOPE.`, "HiRISE DTM + THEMIS", 1));
   }
@@ -234,12 +251,14 @@ function land(to) {
   if (o2 < 0.25) once("o25", 1e9, () => say("Air low! Grab a blue tank or go back to ship. Please, friend.", "", 1));
   const t = S.tanks.find((t) => t.cell === to && !t.done);
   if (t) { t.done = true; S.got++; S.happy = performance.now(); S.spent = Math.max(0, S.spent - TANK_REFILL * S.tank); A.tank(); if (line) replan();
-    S.float = { text: `+${TANK_REFILL * 100}% O2`, t0: performance.now(), cell: to, good: true }; say("Air! Breathe, friend. Breathe.", "", 2); }
+    S.float = { text: `+${TANK_REFILL * 100}% O2`, t0: performance.now(), cell: to, good: true }; say("Air! Breathe, friend. Breathe.", "", 2);
+    S.pop = { cell: to, t0: performance.now(), colour: "#4ff0d0", lines: [`+${TANK_REFILL * 100}% OXYGEN  +30`, `worth the ${s.toFixed(0)} deg slope?`] }; }
   for (const p of S.parts) if (!p.done && p.cell === to) {
     p.done = true; if (line) replan(); S.happy = performance.now(); A.pickup();
     const left = S.parts.filter((x) => !x.done).length, [fact, src] = FACTS[tileKind(T, to)] ?? FACTS.gravel;
     say(left ? `${p.name}! Good good good! ${left} more.` : `${p.name}! All three! ARES can fly home! Back to ship!`, "", 2);
     say(fact, `${src} · here: ${s.toFixed(1)}° slope, ${T.elev[to].toFixed(0)} m`, 0);
+    S.pop = { cell: to, t0: performance.now(), colour: "#ffcf4a", dx: 150, lines: [`${p.name.toUpperCase()}  +100`, `${left ? left + " more to find" : "all found: go home!"}`, "real NASA photo: bottom left"] };
     $("shot").src = p.stop.img;                                // the real view from this spot
     $("cap").textContent = `What Perseverance saw from here — Sol ${p.stop.sol}, ${p.stop.date}. Image: ${p.stop.credit}`;
     $("photo").style.display = "block"; clearTimeout(S.photoT); S.photoT = setTimeout(() => ($("photo").style.display = "none"), 9000);
@@ -277,6 +296,7 @@ function end(why, cause) {
     <tr><td>Steepest slope crossed</td><td>${S.maxSlope.toFixed(1)}&deg;</td></tr>
     <tr><td>Air tanks collected</td><td>${S.got} / ${TANKS}</td></tr>
     <tr><td>SCORE</td><td>${score}${score > best && score ? " NEW BEST!" : best ? ` (best ${best})` : ""}</td></tr></table>
+    ${S.impact ? `<div class="why"><b>IMPACT</b> On this walk, planning with NASA's slope and night-heat data instead of taking the shortest way means <b>${(S.impact.save * 100).toFixed(0)}% less oxygen</b>, <b>${S.impact.bad0 - S.impact.bad1} fewer danger tiles</b> and accident odds cut from <b>${(S.impact.odds0 * 100).toFixed(0)}% to ${(S.impact.odds1 * 100).toFixed(0)}%</b>. The same reading of the ground keeps real rovers alive — and will guide the first crews.</div>` : ""}
     <p class="blink">ENTER = MENU</p>
     <small>CHECKED AGAINST THE REAL ROVER: Perseverance drove this same ground on sols ${R.drive_sols[0]}–${R.drive_sols[1]}. Its tiles average ${R.rover_mean_slope}&deg; of slope against ${R.board_mean_slope}&deg; for the whole board, and it never crossed a tile over our ${SLOPE_LIMIT}&deg; limit.
     Our terrain model matches the elevations the rover reported to within ${R.dem_vs_rover_elev_std_m} m.<br>
@@ -291,6 +311,8 @@ function reply(q) {
   if (S.state !== "play") return ["Press ENTER first. Then ARES talks.", ""];
   const i = S.cell, o2 = Math.max(0, 1 - S.spent / S.tank), left = S.parts.filter((p) => !p.done);
   const where = (c) => { const dx = X(c) - X(i), dy = Y(c) - Y(i); return `${Math.abs(dx)} jumps ${dx < 0 ? "left" : "right"}, ${Math.abs(dy)} jumps ${dy < 0 ? "up" : "down"}`; };
+  if (/why|matter|impact|point|worth|benefit|learn/.test(q)) { const I = S.impact;
+    return [I ? `Short way: ${I.bad0} danger tiles, ${(I.odds0 * 100).toFixed(0)}% chance of an accident. Planned way: ${I.bad1} danger tiles, ${(I.odds1 * 100).toFixed(0)}%, and ${(I.save * 100).toFixed(0)}% less air. Your rover drivers plan the same way. So will the first crews.` : "Planning with real data means less air burned and fewer accidents.", "this board, real HiRISE + THEMIS data"]; }
   if (/rover|machine|persev|nasa|white|dots/.test(q)) return [`The machine by the ship is PERSEVERANCE. It landed right here. The white dots are where it really drove. It kept to gentle ground: ${T.rover.stats.rover_mean_slope}° on average. Smart machine.`, "NASA Mars 2020 traverse data · landed 18 Feb 2021 · P hides the dots"];
   if (/who|you|story|name|from|ship|crash/.test(q)) return ["ARES. From far star. Was going home. Ship broke. Now ARES has you. Good trade.", ""];
   if (/tank|canister|refill|blue/.test(q)) { const t = S.tanks.filter((t) => !t.done).sort((a, b) => dist(i, a.cell) - dist(i, b.cell))[0];
@@ -329,6 +351,7 @@ function update(dt) {
   const i = S.cell, o2 = Math.max(0, 1 - S.spent / S.tank);
   $("o2pct").textContent = (o2 * 100).toFixed(0);
   $("o2fill").style.width = o2 * 100 + "%";
+  $("o2fill").style.background = o2 < 0.25 ? "var(--bad)" : o2 < 0.5 ? "var(--warn)" : "";
   $("o2fill").style.background = o2 < 0.25 ? "var(--bad)" : o2 < 0.5 ? "var(--warn)" : "var(--o2)";
   $("o2row").classList.toggle("low", o2 < 0.25);
   document.querySelectorAll("#slots i").forEach((el, k) => el.classList.toggle("on", S.parts[k].done));
@@ -353,7 +376,10 @@ function draw(now) {
   let ax = cx(S.cell), ay = cy(S.cell), lift = 0;             // where the astronaut is right now (mid-hop included)
   if (S.jump) { const t = S.jump.t; ax = cx(S.jump.from) + (cx(S.jump.to) - cx(S.jump.from)) * t; ay = cy(S.jump.from) + (cy(S.jump.to) - cy(S.jump.from)) * t; lift = Math.sin(Math.PI * t) * 9; }
   // camera: zoomed in on the astronaut, or the whole board (M)
-  S.view += ((S.zoomed ? VIEW_TILES : T.cols) - S.view) * 0.1;
+  const briefing = S.brief > now;                              // the opening briefing: whole map, with labels on it
+  if (S.brief && !briefing) { S.brief = 0; S.tips = false; }
+  const zoomedNow = S.zoomed && !briefing;
+  S.view += ((zoomedNow ? VIEW_TILES : T.cols) - S.view) * 0.1;
   const span = S.view * TILE, half = span / 2, clamp = (v) => Math.max(half, Math.min(BOARD - half, v));
   S.camX += (clamp(ax + 8) - S.camX) * 0.14; S.camY += (clamp(ay + 8) - S.camY) * 0.14;
   const zoom = $("c").width / span;
@@ -364,13 +390,11 @@ function draw(now) {
   if (S.quake) { const age = (now - S.quake.t0) / 260; if (age >= 1) S.quake = null; else { qx = Math.sin(now / 17) * S.quake.amp * (1 - age); qy = Math.cos(now / 13) * S.quake.amp * (1 - age); } }
   if (d3) { ctx = veilCtx; ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, VEIL, VEIL); ctx.setTransform(VEIL / BOARD, 0, 0, VEIL / BOARD, 0, 0); }
   else ctx.setTransform(zoom, 0, 0, zoom, -(clamp(S.camX) - half + qx) * zoom, -(clamp(S.camY) - half + qy) * zoom);
-  const art = S.layer === 1 || S.layer > 3, base = S.layer === 2 ? T.img : S.layer === 3 ? T.height : T.art;
-  if (!d3 || !art) { ctx.imageSmoothingEnabled = base === T.art; ctx.drawImage(base, 0, 0, BOARD, BOARD); }   // in 3D the painted board is already on the mesh
+  const art = S.layer === 1, base = [null, T.art, T.img, T.layers.height, T.layers.slope, T.layers.heat][S.layer];
+  if (!d3 || !art) { ctx.imageSmoothingEnabled = S.layer !== 2; ctx.drawImage(base, 0, 0, BOARD, BOARD); }   // in 3D the painted board is already on the mesh
   ctx.imageSmoothingEnabled = false;
-  const lay = { 4: slopeLayer, 5: thermalLayer }[S.layer];
-  if (lay) ctx.drawImage(lay, 0, 0, 640, 640);
-  ctx.fillStyle = art ? "#00000018" : "#0003"; for (let k = 1; k < T.cols; k++) { ctx.fillRect(k * TILE, 0, 0.5, 640); ctx.fillRect(0, k * TILE, 640, 0.5); }
-  if (!art) { ctx.fillStyle = "#1a0a14aa";                           // photo / height views: hatch the rock walls
+  ctx.fillStyle = S.layer === 2 ? "#0003" : "#00000018"; for (let k = 1; k < T.cols; k++) { ctx.fillRect(k * TILE, 0, 0.5, 640); ctx.fillRect(0, k * TILE, 640, 0.5); }
+  if (S.layer === 2) { ctx.fillStyle = "#1a0a14aa";                          // photo / height views: hatch the rock walls
     for (let i = 0; i < T.slope.length; i++) if (T.slope[i] > SLOPE_LIMIT) for (let k = 0; k < TILE; k += 4) ctx.fillRect(cx(i) + k, cy(i) + k, 3, 3); }
   if (S.layer === 1) {                                        // the map is alive: sand glints on the dunes, wind carries dust
     const tick = Math.floor(now / 320);
@@ -441,7 +465,7 @@ function draw(now) {
     shadow(cx(ar) + 8, cy(ar) + 13, 6); shadow(ax + 8, ay + 14, 6 - lift * 0.25);
     ctx = screen;                                             // ground layer finished: hand it to the 3D view, then draw the HUD on top
     V3.render({ now, cols: T.cols, home: S.home, rover: S.rover, tanks: S.tanks, parts: S.parts, fixed, mood, mf, pose, flip: fixedFlip,
-      aresX: cx(ar) + 8, aresY: cy(ar) + 12, aresLift: ab, ax: ax + 8, ay: ay + 12, lift, zoomed: S.zoomed, qx, qy });
+      aresX: cx(ar) + 8, aresY: cy(ar) + 12, aresLift: ab, ax: ax + 8, ay: ay + 12, lift, zoomed: zoomedNow, qx, qy });
     const k = ($("c").width / (VIEW_TILES * TILE)) * 0.8;
     pin = (bx, by, up) => { const [sx, sy] = V3.project(bx, by, up); ctx.setTransform(k, 0, 0, k, sx - k * bx, sy - k * by); };
   }
@@ -467,7 +491,40 @@ function draw(now) {
       ctx.fillStyle = K; ctx.fillText(S.float.text, tx + 0.5, ty + 0.5);
       ctx.fillStyle = S.float.good ? "#4ff0d0" : S.float.off ? "#ff5a6e" : "#ffffff"; ctx.fillText(S.float.text, tx, ty); }
   }
-  ctx.setTransform(1, 0, 0, 1, 0, 0);                         // screen space: a soft dark frame, redder when oxygen is low
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  // ---- labels on the map itself: what each thing is and what it is worth (I toggles them) ----
+  const CW = $("c").width, scr = (bx, by, up = 0) => (d3 ? V3.project(bx, by, up) : [(bx - (clamp(S.camX) - half + qx)) * zoom, (by - (clamp(S.camY) - half + qy)) * zoom]);
+  const callout = (bx, by, lines, dx, dy, colour = "#4ff0d0", alpha = 1) => {
+    const [px, py] = scr(bx, by); if (px < 10 || py < 10 || px > CW - 10 || py > CW - 10) return;
+    const fonts = ["700 15px 'Chakra Petch', sans-serif", "500 14px 'Chakra Petch', sans-serif"]; ctx.textAlign = "left";
+    const w = Math.max(...lines.map((l, k) => { ctx.font = fonts[k ? 1 : 0]; return ctx.measureText(l).width; })) + 26, h = lines.length * 19 + 16;
+    let x = Math.max(8, Math.min(CW - w - 8, px + dx - w / 2)), y = Math.max(8, Math.min(CW - h - 8, py + dy - h / 2));
+    const hits = (bx2, by2) => boxes.some((b) => bx2 < b[0] + b[2] + 8 && bx2 + w + 8 > b[0] && by2 < b[1] + b[3] + 8 && by2 + h + 8 > b[1]);
+    for (let n = 1; n < 14 && hits(x, y); n++) y = Math.max(8, Math.min(CW - h - 8, py + dy - h / 2 + (n % 2 ? 1 : -1) * Math.ceil(n / 2) * (h + 10)));   // step aside from labels already placed
+    boxes.push([x, y, w, h]);
+    const ex = Math.max(x, Math.min(x + w, px)), ey = Math.max(y, Math.min(y + h, py));      // where the pointer leaves the box
+    ctx.globalAlpha = alpha; ctx.lineCap = "round";
+    ctx.strokeStyle = "#12060dcc"; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(px, py); ctx.stroke();
+    ctx.strokeStyle = colour; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(ex, ey); ctx.lineTo(px, py); ctx.stroke();
+    ctx.fillStyle = "#12060d"; ctx.beginPath(); ctx.arc(px, py, 7, 0, 7); ctx.fill(); ctx.fillStyle = colour; ctx.beginPath(); ctx.arc(px, py, 4, 0, 7); ctx.fill();
+    ctx.fillStyle = "#170a14ee"; ctx.beginPath(); ctx.roundRect(x, y, w, h, 9); ctx.fill(); ctx.strokeStyle = colour; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillStyle = colour; ctx.beginPath(); ctx.roundRect(x, y + 8, 4, h - 16, 2); ctx.fill();
+    lines.forEach((l, k) => { ctx.font = fonts[k ? 1 : 0]; ctx.fillStyle = k ? "#fff1dc" : colour; ctx.fillText(l, x + 15, y + 23 + k * 19); }); ctx.globalAlpha = 1;
+  };
+  const boxes = [];
+  const mid = (i) => [cx(i) + 8, cy(i) + 8], I = S.impact;
+  if (S.tips) {
+    if (S.route && I) { const p = S.route.path[Math.min(S.route.path.length - 1, S.ri + Math.max(4, (S.route.path.length - S.ri) >> 2))];
+      callout(...mid(p), ["ARES'S ROUTE (A*)", `${(I.save * 100).toFixed(0)}% less oxygen`, `danger tiles ${I.bad0} > ${I.bad1}`, `accident odds ${(I.odds0 * 100).toFixed(0)}% > ${(I.odds1 * 100).toFixed(0)}%`], 150, -110, "#39e66b"); }
+    if (S.showRover) { const P = T.rover.path, q = P[(P.length * 0.72) | 0]; callout(q[0] * TILE, q[1] * TILE, ["PERSEVERANCE'S REAL DRIVE", "NASA rover data", "it avoided steep ground too"], 170, 90, "#ffffff"); }
+    const part = S.parts.find((p) => !p.done); if (part) callout(...mid(part.cell), ["SHIP PIECE  +100", "lies at a real rover stop", "shows NASA's photo from here"], -150, -90, "#ffcf4a");
+    const tank = S.tanks.find((t) => !t.done); if (tank) callout(...mid(tank.cell), ["AIR TANK  +25% O2", "on dangerous ground:", `${T.slope[tank.cell].toFixed(0)} deg slope`], -140, 80, "#4ff0d0");
+    callout(...mid(S.home), ["THE WRECK", "bring all 3 pieces back", "before the air runs out"], -190, 10, "#ff7a59");
+    if (briefing) { ctx.font = "700 18px 'Chakra Petch', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = "#12060dcc"; ctx.beginPath(); ctx.roundRect(CW / 2 - 190, 16, 380, 34, 17); ctx.fill();
+      ctx.fillStyle = Math.floor(now / 500) % 2 ? "#fff1dc" : "#ffcf4a"; ctx.fillText("PRESS ANY ARROW KEY TO START", CW / 2, 39); }
+  }
+  if (S.pop) { const age = now - S.pop.t0; if (age > 3800) S.pop = null; else callout(...mid(S.pop.cell), S.pop.lines, S.pop.dx ?? 130, -110 - age * 0.01, S.pop.colour, Math.min(1, (3800 - age) / 500)); }   // what just happened, and what it was worth
+  // screen space: a soft dark frame, redder when oxygen is low
   const W = $("c").width, v = ctx.createRadialGradient(W / 2, W / 2, W * 0.36, W / 2, W / 2, W * 0.74), low = o2 < 0.25 ? 0.5 + 0.2 * Math.sin(now / 200) : 0;
   v.addColorStop(0, "rgba(20,8,18,0)"); v.addColorStop(1, low ? `rgba(150,10,30,${low})` : "rgba(20,8,18,0.6)"); ctx.fillStyle = v; ctx.fillRect(0, 0, W, W);
 }
@@ -484,6 +541,8 @@ addEventListener("keydown", (e) => {
   if (e.code.startsWith("Arrow") || e.code === "Space") e.preventDefault();
   if (e.repeat) return;
   if (MOVE.includes(e.code)) { S.keys.push(e.code); S.tap = e.code; }
+  if ((MOVE.includes(e.code) || e.code === "Space") && S.brief) S.brief = 1;   // any move ends the opening briefing
+  if (e.code === "KeyI" && S.state === "play") { S.tips = !S.tips; S.brief = 0; }
   A.unlock();
   if (e.code === "KeyN") { $("snd").textContent = A.toggleMute() ? "SOUND OFF" : "SOUND ON"; return; }
   if (S.state === "gate") return openGate();
@@ -624,8 +683,9 @@ function frame(now) {
 loadBoard().then(async (t) => {
   T = t; cost = makeCost(T);
   T.art = paintBoard(T, T.img, T.tex, T.props);
+  T.layers = paintLayers(T, T.ltex);                          // HEAT, SLOPE and HEIGHT in their own painted textures
   T.dunes = []; for (let i = 0; i < T.slope.length; i++) if (tileKind(T, i) === "dune") T.dunes.push(i);
-  slopeLayer = overlay(T, slopeColour(T)); thermalLayer = overlay(T, thermalColour(T)); setLayer(1);
+  setLayer(1);
   drawChar($("face").getContext("2d"), T.ares, "idle", 0, 92, 119, 1);   // ARES is on the menu too
   V3.init(T, $("c3"), T.art, veil).catch((e) => console.warn("3D view unavailable:", e));   // 2D never depends on this
   const R = T.rover.stats;                                    // the "how it works" page is filled from the real numbers
@@ -643,7 +703,9 @@ loadBoard().then(async (t) => {
     <tr><td>Rover tiles over our ${SLOPE_LIMIT}&deg; limit</td><td>${R.rover_over_limit} of ${R.rover_tiles}</td></tr>
     <tr><td>Rover tiles on sand</td><td>${R.rover_sand_pct}% (board: ${R.board_sand_pct}%)</td></tr>
     <tr><td>Our terrain model vs rover elevations</td><td>&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops</td></tr></table>
-    <small>The story, the oxygen tank, the accident chances and the dust devil are game design, not measurements.<br>The limit and the weights in the cost are our choices. Art was made with AI tools; all terrain data is NASA / USGS.</small>
+    <small>WHO IT IS FOR: students learning how scientists read a planet from orbit; anyone curious how a Marswalk is planned.<br>
+    KEYS: arrows jump · SPACE follow the line · V 2D/3D · M whole map · P rover path · 1-5 layers · F full screen · N sound · E end at the ship<br>
+    The story, the oxygen tank, the accident chances and the dust devil are game design, not measurements.<br>The limit and the weights in the cost are our choices. Art was made with AI tools; all terrain data is NASA / USGS.</small>
     <p class="blink">H = CLOSE</p>`;
   $("levels").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && S.state === "title") { b.blur(); start(LEVELS[+b.dataset.l]); } });
   document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }

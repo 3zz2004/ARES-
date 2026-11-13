@@ -20,6 +20,48 @@ function noise(x, y, s, cell) {              // smooth value noise, 0..1
   return (hash2(x0, y0, s) * (1 - u) + hash2(x0 + 1, y0, s) * u) * (1 - v) + (hash2(x0, y0 + 1, s) * (1 - u) + hash2(x0 + 1, y0 + 1, s) * u) * v;
 }
 
+// Lay textures over the board: each tile names a texture; borders between them are cut organically and get a dark seam.
+function quilt(N, which, tex, px) {
+  const W = N * px, M = W / BLOCK, per = px / BLOCK, at = (x, y) => Math.max(0, Math.min(N - 1, y)) * N + Math.max(0, Math.min(N - 1, x));
+  const idx = new Uint8Array(M * M), w = new Float32Array(tex.length);
+  for (let y = 0; y < M; y++) for (let x = 0; x < M; x++) {
+    const u = (x + 0.5) / per - 0.5, v = (y + 0.5) / per - 0.5, x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0;
+    w.fill(0);
+    w[which[at(x0, y0)]] += (1 - fx) * (1 - fy); w[which[at(x0 + 1, y0)]] += fx * (1 - fy); w[which[at(x0, y0 + 1)]] += (1 - fx) * fy; w[which[at(x0 + 1, y0 + 1)]] += fx * fy;
+    let best = 0, bv = -1;
+    for (let k = 0; k < w.length; k++) if (w[k] > 0) { const val = w[k] + (noise(x, y, k + 1, 9) - 0.5) * 0.45; if (val > bv) { bv = val; best = k; } }
+    idx[y * M + x] = best;
+  }
+  const art = canvas(W), g = art.getContext("2d"), tmp = canvas(W), tg = tmp.getContext("2d"), mask = canvas(M), mg = mask.getContext("2d");
+  g.imageSmoothingEnabled = false; tg.imageSmoothingEnabled = false;
+  for (let k = 0; k < tex.length; k++) {
+    const im = mg.createImageData(M, M); let any = false;
+    for (let p = 0; p < M * M; p++) if (idx[p] === k) { im.data[p * 4 + 3] = 255; any = true; }
+    if (!any) continue;
+    mg.putImageData(im, 0, 0);
+    tg.globalCompositeOperation = "source-over"; tg.clearRect(0, 0, W, W); tg.fillStyle = tg.createPattern(tex[k], "repeat"); tg.fillRect(0, 0, W, W);
+    tg.globalCompositeOperation = "destination-in"; tg.drawImage(mask, 0, 0, W, W);
+    g.drawImage(tmp, 0, 0);
+  }
+  g.fillStyle = "rgba(46,20,36,0.4)";                                                // a dark seam where two grounds meet
+  for (let y = 0; y < M - 1; y++) for (let x = 0; x < M - 1; x++) { const p = y * M + x; if (idx[p] !== idx[p + 1] || idx[p] !== idx[p + M]) g.fillRect(x * BLOCK, y * BLOCK, BLOCK, BLOCK); }
+  return art;
+}
+
+// The data layers, painted in their own textures. Which texture a tile gets is the data itself:
+//   heat   <- THEMIS night IR, coldest (loose sand) to warmest (bedrock), 5 steps
+//   slope  <- HiRISE DTM slope: under 5°, 5-10°, 10° to the limit, over the limit (cannot be crossed)
+//   height <- HiRISE DTM elevation, 6 equal-area bands from the lowest ground to the highest
+export const LAYER_TEX = { heat: ["heat0", "heat1", "heat2", "heat3", "heat4"], slope: ["slope0", "slope1", "slope2", "slope3"], height: ["high0", "high1", "high2", "high3", "high4", "high5"] };
+export function paintLayers(T, tex) {
+  const N = T.cols, n = N * N, high = ranks(Float32Array.from(T.elev)), pick = (f) => Uint8Array.from({ length: n }, (_, i) => f(i));
+  return {
+    heat: quilt(N, pick((i) => Math.min(4, ((1 - T.soft[i]) * 5) | 0)), tex.heat, 32),
+    slope: quilt(N, pick((i) => (T.slope[i] > SLOPE_LIMIT ? 3 : T.slope[i] > 10 ? 2 : T.slope[i] > 5 ? 1 : 0)), tex.slope, 32),
+    height: quilt(N, pick((i) => Math.min(5, (high[i] * 6) | 0)), tex.height, 32),
+  };
+}
+
 export function tileKind(T, i) { return T.slope[i] > SLOPE_LIMIT ? "cliff" : T.soft[i] > 0.6 ? "dune" : T.soft[i] < 0.36 ? "slab" : "gravel"; }
 
 export function paintBoard(T, photo, tex, props) {
@@ -34,29 +76,7 @@ export function paintBoard(T, photo, tex, props) {
   for (let i = 0; i < N * N; i++) { const k = tileKind(T, i);
     which[i] = k === "cliff" ? 5 : k === "dune" ? 0 : k === "slab" ? (bright[i] < 0.3 ? 3 : 1) : T.slope[i] < 4 ? 4 : 2; }
 
-  const idx = new Uint8Array(M * M), w = new Float32Array(TEXTURES.length), per = ART / BLOCK;   // organic borders between textures
-  for (let y = 0; y < M; y++) for (let x = 0; x < M; x++) {
-    const u = (x + 0.5) / per - 0.5, v = (y + 0.5) / per - 0.5, x0 = Math.floor(u), y0 = Math.floor(v), fx = u - x0, fy = v - y0;
-    w.fill(0);
-    w[which[at(x0, y0)]] += (1 - fx) * (1 - fy); w[which[at(x0 + 1, y0)]] += fx * (1 - fy); w[which[at(x0, y0 + 1)]] += (1 - fx) * fy; w[which[at(x0 + 1, y0 + 1)]] += fx * fy;
-    let best = 0, bv = -1;
-    for (let k = 0; k < w.length; k++) if (w[k] > 0) { const val = w[k] + (noise(x, y, k + 1, 9) - 0.5) * 0.45; if (val > bv) { bv = val; best = k; } }
-    idx[y * M + x] = best;
-  }
-
-  const art = canvas(W), g = art.getContext("2d"), tmp = canvas(W), tg = tmp.getContext("2d"), mask = canvas(M), mg = mask.getContext("2d");
-  g.imageSmoothingEnabled = false; tg.imageSmoothingEnabled = false;
-  for (let k = 0; k < TEXTURES.length; k++) {
-    const im = mg.createImageData(M, M); let any = false;
-    for (let p = 0; p < M * M; p++) if (idx[p] === k) { im.data[p * 4 + 3] = 255; any = true; }
-    if (!any) continue;
-    mg.putImageData(im, 0, 0);
-    tg.globalCompositeOperation = "source-over"; tg.fillStyle = tg.createPattern(tex[k], "repeat"); tg.fillRect(0, 0, W, W);
-    tg.globalCompositeOperation = "destination-in"; tg.drawImage(mask, 0, 0, W, W);
-    g.drawImage(tmp, 0, 0);
-  }
-  g.fillStyle = "rgba(46,20,36,0.4)";                                                // a dark seam where two grounds meet
-  for (let y = 0; y < M - 1; y++) for (let x = 0; x < M - 1; x++) { const p = y * M + x; if (idx[p] !== idx[p + 1] || idx[p] !== idx[p + M]) g.fillRect(x * BLOCK, y * BLOCK, BLOCK, BLOCK); }
+  const art = quilt(N, which, tex, ART), g = art.getContext("2d");
 
   // light: hillshade and height tint from the real elevation, multiplied over the ground
   const L = N * 4, lit = canvas(L), lg = lit.getContext("2d"), li = lg.createImageData(L, L), lo = T.elev_range_m[0], span = T.elev_range_m[1] - lo;
