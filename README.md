@@ -1,0 +1,111 @@
+# ARES — A Jezero Marswalk
+
+**NASA Space Apps Challenge 2026 · Cairo · Team Alexstra**
+Challenge: *Interplanetary Survival Guide: Martian Map*
+
+A 2D pixel-art survival game played on a map of the real Jezero Crater. A stranded traveller, ARES, needs you to
+recover three pieces of a wrecked ship and walk back before your oxygen runs out. Every hazard on the board — every
+slope, sand trap and rock wall — comes from NASA data of the ground around Perseverance's landing site, and the game
+checks itself against the route the real rover drove.
+
+## How to play
+| Key | Action |
+|---|---|
+| 1 / 2 / 3 | Start on EASY, NORMAL or HARD |
+| Arrows / WASD | Jump one tile (up, down, left, right) |
+| Space | Follow ARES's green line (the A* route) |
+| M | Zoom out to the whole map and back |
+| P | Show / hide where Perseverance really drove (white dots) |
+| R | Hide / show the green line |
+| 1–5 (in game) | Map layers: MAP · PHOTO · HEIGHT · SLOPE · HEAT |
+| V | Switch between the 2D map and the 3D terrain (same game, other camera) |
+| H | How it works: data sources, the cost function, the evidence |
+| F / N | Full screen / sound on-off |
+| E | End the mission (when standing on the ship) |
+
+- **EASY / NORMAL:** the green line is the cheapest, safest route. Off it, each jump burns 40% more oxygen, and steep or
+  sandy ground can kill.
+- **HARD:** no line. You read the SLOPE and HEAT layers and plan the walk yourself.
+- **Oxygen tanks** refill 25% — but they lie on the hardest ground.
+- Each ship piece lies at a real place where Perseverance stopped. Reach it and you see the photo the rover took there.
+- Ask ARES with the buttons under his speech bubble, or type: `where?`, `tank?`, `air?`, `danger?`, `rover?`
+
+## The science: how NASA data drives the game
+The board is a window centred on Perseverance's landing site (18.4447° N, 77.4508° E): 1.60 km north–south by 1.52 km
+east–west, split into 40 × 40 tiles.
+
+| Game element | Real data | Source |
+|---|---|---|
+| Slope of each tile, rock walls, ledges, craters, hillshade, elevation colours, HEIGHT layer | HiRISE Digital Terrain Model, 1 m/pixel | MRO HiRISE — USGS Astrogeology (Mars 2020 terrain products) |
+| Sand vs bedrock, HEAT layer | THEMIS night-time infrared mosaic, 100 m/pixel (cold at night = low thermal inertia = loose sand) | Mars Odyssey THEMIS — JPL Mars Trek |
+| PHOTO layer, light/dark ground | HiRISE orthomosaic, 25 cm/pixel | MRO HiRISE — JPL Mars Trek |
+| White dots: the rover's real drive, sols 14–386 | Mars 2020 localisation (waypoints and traverse) | NASA/JPL-Caltech |
+| Photo shown at each ship piece | Navcam images taken at that exact rover stop | NASA/JPL-Caltech — Mars 2020 raw images |
+
+**Route planning.** ARES plans with A* over the tile grid using a custom cost:
+
+```
+cost(step) = 40 m × (1 + 2.5 × (slope / 15°)² + 0.6 × sand)
+```
+
+Tiles steeper than 15° are impassable. The same cost drains the oxygen tank, so the planner and the survival rules agree.
+
+**How the map is drawn.** `game/tiles.js` chooses each tile's ground texture and rocks from the data: rippled sand where
+THEMIS is cold at night, cracked bedrock where it is warm, boulders where the slope is steep, craters in real hollows of
+the terrain model, ledges where the ground really drops. Press PHOTO to compare with the real image.
+
+**3D view.** Press V and the same board is shown as a terrain mesh built from the HiRISE elevation model (8 m posts,
+heights exaggerated 3.5× so 46 m of real relief reads on screen). The rules, the route and the oxygen do not change —
+only the camera does. Uses three.js (MIT licence, bundled in `game/lib`).
+
+**Sound and intro.** All sound is synthesised live in the browser (`game/audio.js`); the opening cinematic is drawn
+live from the game's own art (`game/cine.js`). There are no audio or video files.
+
+## Checked against the real rover
+Perseverance drove across this same board. `tools/build_rover.py` compares its route with ours:
+
+| Check | Rover's tiles | Whole board |
+|---|---|---|
+| Average slope | 4.2° | 6.1° |
+| Tiles steeper than 10° | 5.4% | 10.1% |
+| Tiles over our 15° limit | 0 of 93 | 17 of 1600 |
+| Tiles on sand | 16.1% | 20.2% |
+
+Rover drivers kept to gentler, firmer ground — the same ground our cost function prefers — and never crossed a tile we
+mark impassable. Our terrain model also matches the elevations the rover itself reported at 85 stops to within ±0.08 m.
+
+## What is not data
+- The story (ARES, the ship, its parts), the oxygen tank size, the accident probabilities and the dust devil are game design.
+- The 15° limit and the weights in the cost function are our own choices, not NASA figures.
+- THEMIS is used as a relative measure inside this window (brighter = rockier). It is not a calibrated temperature, and
+  at 100 m/pixel the sand/rock boundaries are approximate.
+- NASA Worldview (listed with the challenge) covers Earth only and is not used. The USGS geologic maps and the Curiosity
+  route example informed the design but are not loaded as data.
+
+## Run it locally
+```bash
+python -m http.server 5173 --directory game
+```
+Then open http://localhost:5173
+
+## Rebuild the data from NASA servers
+Nothing large is downloaded: the tools stream only the window they need.
+```bash
+python tools/fetch_dem_window.py --out data/jezero_dem.json
+python tools/build_tiles.py
+python tools/build_rover.py
+```
+Requires Python 3 with `numpy`, `Pillow` and `scipy`. `build_rover.py` expects `data/M20_waypoints.json` and
+`data/M20_traverse.json` from `https://mars.nasa.gov/mmgis-maps/M20/Layers/json/`.
+
+## Use of AI
+- **Code:** written with an AI coding assistant (Claude, by Anthropic) under the team's direction.
+- **Art:** the characters, ground textures, rocks and objects were generated with AI image tools from the team's prompts,
+  then cut and placed by our own code. Sheets are in `art_src/`.
+- **In the game:** ARES's replies are scripted from the live game state. No AI model runs inside the game.
+- **Data:** all terrain, traverse and photo data is NASA/USGS data as listed above. No data was generated by AI.
+
+## Credits
+NASA/JPL-Caltech/University of Arizona (HiRISE), NASA/JPL-Caltech/Arizona State University (THEMIS), USGS Astrogeology
+Science Center, JPL Mars Trek, NASA/JPL-Caltech (Mars 2020 localisation and Navcam images). Font: Press Start 2P (SIL
+Open Font License). NASA does not endorse this project.
