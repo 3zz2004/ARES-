@@ -107,11 +107,17 @@ export function render(g) {
   frame(spr.ares, g.mood, g.mf, false); place(spr.ares, g.aresX, g.aresY, g.aresLift);
   frame(spr.astro, g.pose[0], g.pose[1], g.flip); place(spr.astro, g.ax, g.ay, g.lift);
 
-  // camera: behind and above the astronaut, or pulled back over the whole crater floor
-  const tx = g.ax, tz = g.ay, ty = heightAt(tx, tz);
-  const want = g.zoomed ? v.set(tx, ty + 78, tz + 118) : v.set(320, 520, 960);
-  cam.position.lerp(want, 0.08);
-  look.lerp(g.zoomed ? new THREE.Vector3(tx, ty + 10, tz - 6) : new THREE.Vector3(320, 0, 290), 0.1);
+  // camera: first person (through the visor), third person (behind and above), or pulled back over the whole crater floor
+  const tx = g.ax, tz = g.ay, ty = heightAt(tx, tz), first = g.first && g.zoomed;
+  spr.astro.visible = !first;                             // in first person you do not see your own body
+  if (first) {
+    cam.position.lerp(v.set(tx - g.dx * 2, ty + 15 + g.lift * 0.6, tz - g.dz * 2), 0.25);
+    look.lerp(new THREE.Vector3(tx + g.dx * 90, ty - 12, tz + g.dz * 90), 0.12);   // eyes slightly down: the ground ahead matters more than the sky
+  } else {
+    cam.position.lerp(g.zoomed ? v.set(tx, ty + 78, tz + 118) : v.set(320, 520, 960), 0.08);
+    look.lerp(g.zoomed ? new THREE.Vector3(tx, ty + 10, tz - 6) : new THREE.Vector3(320, 0, 290), 0.1);
+  }
+  const fov = first ? 68 : 38; if (Math.abs(cam.fov - fov) > 0.1) { cam.fov += (fov - cam.fov) * 0.12; cam.updateProjectionMatrix(); }
   cam.lookAt(look.x + g.qx, look.y + g.qy, look.z);
   R.render(scene, cam);
 }
