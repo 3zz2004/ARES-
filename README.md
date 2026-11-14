@@ -145,5 +145,5 @@ Requires Python 3 with `numpy`, `Pillow` and `scipy`. `build_rover.py` expects `
 
 ## Credits
 NASA/JPL-Caltech/University of Arizona (HiRISE), NASA/JPL-Caltech/Arizona State University (THEMIS), USGS Astrogeology
-Science Center, JPL Mars Trek, NASA/JPL-Caltech (Mars 2020 localisation and Navcam images). Font: Press Start 2P (SIL
+Science Center, JPL Mars Trek, NASA/JPL-Caltech (Mars 2020 localisation and Navcam images). Music in the opening story: "Interstellar" by QuentinGaming (Pixabay). Font: Press Start 2P (SIL
 Open Font License). NASA does not endorse this project.

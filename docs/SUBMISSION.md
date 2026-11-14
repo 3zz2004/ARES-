@@ -96,6 +96,7 @@ Yes, AI tools were used, as follows.
 
 ## Space Agency Partner Data and Other References
 - No space agency partner data was used.
+- Music in the opening story: "Interstellar" by QuentinGaming (Pixabay, track 580133), used under the Pixabay Content License. All other sound is synthesised by code.
 - three.js r160 (MIT licence) — 3D rendering. https://threejs.org
 - Fonts: Chakra Petch and Press Start 2P (SIL Open Font License), from Google Fonts.
 - Python libraries: NumPy, SciPy, Pillow, pypdf.
