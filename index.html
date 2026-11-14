@@ -217,10 +217,17 @@
   #gate .gstats b { display:block; font-size:2.3em; font-weight:700; line-height:1.2; color:var(--o2); white-space:nowrap; }
   #gate .gstats span { font-size:.9em; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); }
   #gate .gsub { width:min(46em, 100%); max-width:46em; font-size:1.1em; line-height:1.5; color:var(--ink); margin:1.2em auto 1.6em; }
+  /* ---- shown while the data and the art download ---- */
+  #boot { position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.4em; background:radial-gradient(circle at 50% 40%, #3a1626, #120810 75%); font-size:clamp(9px, 1.1vw, 15px); text-align:center; padding:0 6vw; }
+  #boot h1 { font-size:4.2em; margin:0; font-weight:normal; color:var(--warn); text-shadow:.1em .1em 0 var(--k); }
+  #boot p { margin:0; font-family:"Chakra Petch", system-ui, sans-serif; font-size:1.25em; letter-spacing:.08em; color:var(--dim); }
+  #boot .bar { width:min(22em, 70vw); height:.5em; border-radius:1em; background:#0009; overflow:hidden; } #boot .bar i { display:block; height:100%; width:4%; border-radius:1em; background:var(--o2); transition:width .25s; }
+  @media (orientation:portrait) { #boot { font-size:clamp(10px, 2.8vw, 15px); } }
 </style>
 </head>
 <body>
 <!-- full-window layers: outside #stage so they cover the whole screen -->
+<div id="boot"><h1>ARES</h1><p>Loading NASA's map of Jezero Crater&hellip;</p><div class="bar"><i></i></div></div>
 <div id="gate">
   <div class="gkick">NASA SPACE APPS 2026 &nbsp;&middot;&nbsp; BUILT ON REAL NASA DATA OF JEZERO CRATER</div>
   <h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2>
