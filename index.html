@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ARES — Jezero Marswalk</title>
+<meta name="description" content="A survival game on NASA's real map of Jezero Crater, Mars. NASA Space Apps Challenge 2026, Team Alexstra.">
+<!-- AI disclosure: the code was written with an AI coding assistant (Claude, Anthropic) under the team's direction.
+     The characters, ground textures, rocks and objects are AI-generated images and are marked as such on screen.
+     All terrain data, the rover traverse and the photographs are NASA / USGS data. No AI model runs inside the game. -->
+<meta name="ai-disclosure" content="Code written with an AI coding assistant (Claude). Art generated with AI image tools. Terrain data and photos: NASA/USGS. No AI model runs in the game.">
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Chakra+Petch:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root { --ink:#fff1dc; --dim:#c9a08c; --bg:#170a12; --card:#2b1322; --deep:#1a0b15; --line:#ff7a59; --o2:#4ff0d0; --warn:#ffcf4a; --bad:#ff4d6d; --k:#12060d; }
@@ -15,6 +20,8 @@
   #board { position:relative; height:100%; aspect-ratio:1; flex:none; overflow:hidden; background:var(--bg); border:3px solid var(--k); border-radius:1.2em; box-shadow:0 0 0 3px var(--line), 0 1em 3em #000a; }
   canvas#c, canvas#c3 { position:absolute; inset:0; width:100%; height:100%; display:block; }   /* absolute: their 960px size must not stretch the layout */
   canvas#c3 { display:none; background:linear-gradient(180deg, #2a1230 0%, #8a3c40 38%, #e8a064 60%, #d08458 100%); }   /* 3D terrain, under the 2D canvas, with a Mars sky */
+  /* Required by the Space Apps rules: AI-generated images carry a visible mark wherever they are shown. */
+  .aimark { position:absolute; left:1.2%; top:1.2%; z-index:40; pointer-events:none; font-family:"Chakra Petch", system-ui, sans-serif; font-size:clamp(8px, .85vw, 12px); font-weight:700; letter-spacing:.1em; padding:.3em .7em; border-radius:.4em; color:#ffcf4a; background:#12060dcc; border:1px solid #ffcf4a66; }
   #dim { position:absolute; right:2.5%; bottom:2.5%; z-index:2; font-size:1.2em; padding:.6em .9em; background:#2b1322; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--line), 0 .3em 0 var(--k); }
   #dim.on { background:var(--o2); color:var(--k); box-shadow:0 0 0 2px #fff, 0 .3em 0 var(--k); }
 
@@ -147,7 +154,7 @@
   <div class="why"><b>WHY IT MATTERS</b><br>The first people on Mars will walk with a limited tank of oxygen. A route planned from real terrain data is the difference between a good day and an emergency. ARES lets anyone feel that — on NASA's own map of Jezero Crater.</div>
   <p class="blink">CLICK OR PRESS ANY KEY</p><small>Sound on for the full experience</small></div>
 <div id="video"><video id="vid" playsinline></video><button id="vskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
-<div id="cine"><canvas id="cv" width="1280" height="720"></canvas><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
+<div id="cine"><canvas id="cv" width="1280" height="720"></canvas><div class="aimark">AI-GENERATED ART</div><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
 <div id="stage">
   <div id="panel">
     <div id="hero" class="card">
@@ -184,6 +191,7 @@
   <div id="board">
     <canvas id="c3" width="960" height="960"></canvas>
     <canvas id="c" width="960" height="960"></canvas>
+    <div class="aimark" title="The characters, ground textures, rocks and objects were generated with AI image tools. All terrain data and photos are NASA data.">AI-GENERATED ART &middot; REAL NASA DATA</div>
     <button id="dim" title="Switch between the 2D map and the 3D terrain (V)">2D</button>
     <button id="cam" title="3D camera: first person or third person (C)">3RD PERSON</button>
     <div id="title" class="screen">
