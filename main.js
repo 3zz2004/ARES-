@@ -403,7 +403,6 @@ function suggest(list) {
 $("ask").addEventListener("submit", (e) => { e.preventDefault(); const q = $("q").value.trim(); if (!q) return; $("q").value = ""; $("q").blur(); ask(q); });
 $("chips").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; b.blur(); ask(b.dataset.q); });
 
-// ---------- loop ----------
 // ---------- the ship's computer: everything NASA has on this ground, in one place (E at the wreck) ----------
 function openComp(tab = S.compTab || 0) {
   if (!S.paused) A.ui(); S.paused = true; S.compTab = tab; const R = T.rover.stats, I = S.impact, n = T.slope.length, all = Array.from({ length: n }, (_, j) => j);
@@ -832,7 +831,7 @@ function drawIntro(now) {
 }
 $("inext").addEventListener("click", () => nextScene()); $("iskip").addEventListener("click", () => nextScene(true)); $("replay").addEventListener("click", (e) => { e.target.blur(); showIntro(); });
 
-// ---------- opening: a start gate (browsers need a click before sound), then the intro video if one is installed ----------
+// ---------- opening: a start gate (browsers need a click before sound), then the story, then the walk-through video ----------
 // Drop a file at game/assets/intro.mp4 (or .webm) and it plays full-screen after the opening story, with a SKIP button.
 const seenIntro = () => { try { return !!localStorage.getItem("ares-seen-intro"); } catch { return false; } };
 function openGate() {
