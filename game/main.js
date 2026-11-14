@@ -378,7 +378,7 @@ function reply(q) {
   // 2. your tank and the ground around you
   if (/enough|\b(air|oxygen|o2)\b.*\b(left|have|much)\b|\bhow much (air|oxygen)/.test(q)) { const plan = planTour(T, cost, i, left.map((p) => p.cell), S.home), need = plan ? plan.cost / S.tank : 1;
     return [`You have ${(o2 * 100).toFixed(0)}% air. The cheapest way to finish from here needs ${(need * 100).toFixed(0)}%. ${need < o2 ? `That leaves ${((o2 - need) * 100).toFixed(0)}% spare.` : "That is not enough: take an air tank."}`, "A* tour cost from your tile", ["Where is the nearest air tank?", "Where is the next piece?", "How does the oxygen work?"]]; }
-  if (/safe|around me|under me|where i stand|near me|next to me/.test(q)) {
+  if (/safe|around me|under me|where i stand|near me|next to me|what am i (standing )?on|\b(steep|slope|ground|surface|high|height|elevation|risk|danger|dangerous)\b.*\b(here|under|my tile|this tile|i am|i'm)\b|\b(here|this tile|my tile)\b.*\b(steep|slope|ground|surface|risk|danger|dangerous)\b/.test(q)) {
     const look = [["up", 0, -1], ["down", 0, 1], ["left", -1, 0], ["right", 1, 0]].map(([name, dx, dy]) => { const x = X(i) + dx, y = Y(i) + dy; if (x < 0 || y < 0 || x >= T.cols || y >= T.rows) return `${name}: edge of the map`;
       const j = y * T.cols + x; return !cost.passable(j) ? `${name}: rock wall, ${T.slope[j].toFixed(0)}°` : `${name}: ${T.slope[j].toFixed(0)}° ${surface(j)}${cost.risk(j) ? `, ${(cost.risk(j) * 100).toFixed(0)}% risk` : ", safe"}`; });
     return [`You stand on ${T.slope[i].toFixed(1)}° ${surface(i)}, at ${T.elev[i].toFixed(0)} m. ${look.join(". ")}.`, "HiRISE slope and elevation, THEMIS night heat, per tile", ["Where is the next piece?", "How do you tell sand from rock?", "How steep can a rover go?"]];
