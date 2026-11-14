@@ -840,10 +840,14 @@ function openGate() {
   document.documentElement.requestFullscreen?.().catch(() => {});   // fill the screen (F toggles it)
   playCine();                                                 // every visit opens with the story
 }
-function playCine() { S.state = "cine"; $("title").style.display = "none"; $("cine").style.display = "block"; startCine(S); }
+// The story has its own score: a recorded track, cut so that its loud part carries the flight and the fall, and its quiet close begins at the impact.
+const score = new Audio("assets/story.mp3"); score.preload = "auto"; score.volume = 0.9;
+function playCine() { S.state = "cine"; $("title").style.display = "none"; $("cine").style.display = "block"; A.music(false); startCine(S);
+  score.muted = A.isMuted(); score.currentTime = 0; score.play().catch(() => { /* no sound allowed yet: the pictures still play */ }); }
 function endCine(skipped) {                  // the story ran to its end: the walk-through follows. Skipped: straight to the menu.
   $("cine").style.display = "none";
   try { localStorage.setItem("ares-seen-intro", "1"); } catch { /* private mode */ }
+  score.pause(); A.music(true);                               // the score belongs to the story only; the game has its own quiet music
   if (skipped === true) A.hush(); else if (S.video) return playVideo();
   S.state = "title"; $("title").style.display = "flex";
 }
@@ -882,6 +886,7 @@ $("gskip").addEventListener("click", (e) => { e.target.blur(); endGuide(); });
 let last = performance.now();
 function frame(now) {
   $("stage").classList.toggle("lobby", S.state !== "play" && S.state !== "end");   // the side panel belongs to the walk, not to the menu
+  if (S.state === "cine") score.muted = A.isMuted();
   if (S.state === "cine") drawCine($("cv").getContext("2d"), S, T, endCine);
   else if (S.state === "intro") drawIntro(now); else if (S.state === "play" || S.state === "end") { update(Math.min(50, now - last)); draw(now); }
   last = now; requestAnimationFrame(frame);

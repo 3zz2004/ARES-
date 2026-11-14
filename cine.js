@@ -19,7 +19,7 @@ const LINES = [                                         // [start ms, end ms, te
   [COME + 200, TITLE - 300, "Then someone came."],
 ];
 const BREAK = [FAIL + 250, FAIL + 1000, FAIL + 1800];   // when each piece tears off
-const CUES = [[200, A.whoosh], [300, () => A.music(true)], [500, () => A.engine(5.4)],
+const CUES = [[200, A.whoosh], [500, () => A.engine(5.4)],
   [FAIL, () => { A.boom(0.6); A.powerdown(); }], [FAIL + 500, A.alarm], [FAIL + 1400, A.alarm], [FAIL + 2300, A.alarm], [FAIL + 3200, A.alarm], [FAIL + 4000, A.alarm],
   ...BREAK.map((at) => [at, () => { A.spark(); A.whoosh(); }]),
   [DIVE - 150, () => A.roar((HIT - DIVE + 150) / 1000)],
