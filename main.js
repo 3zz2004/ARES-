@@ -840,7 +840,8 @@ function openGate() {
   document.documentElement.requestFullscreen?.().catch(() => {});   // fill the screen (F toggles it)
   playCine();                                                 // every visit opens with the story
 }
-// The story has its own score: a recorded track, cut so that its loud part carries the flight and the fall, and its quiet close begins at the impact.
+// The story has its own score: a recorded track, cut to the picture. It is quiet while the ship cruises, comes in hard when the engine
+// blows (6.0 s), falls away at the impact (15.5 s) and returns on the title (30.4 s). The beats in cine.js are set to match it.
 const score = new Audio("assets/story.mp3"); score.preload = "auto"; score.volume = 0.9;
 function playCine() { S.state = "cine"; $("title").style.display = "none"; $("cine").style.display = "block"; A.music(false); startCine(S);
   score.muted = A.isMuted(); score.currentTime = 0; score.play().catch(() => { /* no sound allowed yet: the pictures still play */ }); }
