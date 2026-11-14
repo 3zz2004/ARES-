@@ -446,22 +446,36 @@ function openComp(tab = S.compTab || 0) {
     else if (t) openComp(+t.dataset.tab);
     else if (f) { v.querySelector("img").src = f.dataset.src; v.lastElementChild.textContent = f.dataset.cap.replace(/&[a-z]+;/g, " "); v.style.display = "flex"; } };
 }
-// ---------- the first screen: the line types itself like a console, the numbers count to their real values ----------
+// ---------- the first screen: a console that keeps typing why this matters; the numbers count to their real values ----------
+const GATE_LINES = [                                    // [headline, the part of it in red, the console line under it]
+  ["On Mars, the shortest way ", "can kill you.", "A route planned on NASA's slope and night-heat maps uses 15% less oxygen than the shortest walk."],
+  ["One tank of oxygen. ", "No second chance.", "The first people on Mars will walk with a fixed amount of air. Planning is what brings them home."],
+  ["The map is real. ", "So is the danger.", "Every tile is 40 metres of the real Jezero Crater, measured from orbit at 1 metre per pixel."],
+  ["Every step costs air. ", "Choose it well.", "Steep ground and soft sand burn more oxygen. The data shows both before you take the step."],
+  ["A safe route is not luck. ", "It is data.", "Perseverance's real track stays on the ground this map calls safe. 0 of its 93 tiles are too steep."],
+  ["NASA mapped this ground. ", "Now walk it.", "Sand goes cold at night. Rock stays warm. That is how you tell them apart from orbit."],
+];
 function gateFx() {
   const G = $("gate"), big = G.querySelector(".gbig"), sub = G.querySelector(".gsub"), nums = [...G.querySelectorAll(".gstats b")], go = G.querySelector(".blink");
-  const A1 = "On Mars, the shortest way ", A2 = "can kill you.", SUB = sub.textContent.trim(), t0 = performance.now(), cur = '<i class="cur"></i>';
-  const out = (x) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
+  const t0 = performance.now(), cur = '<i class="cur"></i>', out = (x) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
+  const HS = 38, CS = 16, GAP = 300, HOLD = 3400, WIPE = 550;   // ms per letter of the headline and of the console line; the pauses
+  const span = (L) => (L[0].length + L[1].length) * HS + GAP + L[2].length * CS + HOLD + WIPE;
   sub.textContent = ""; go.style.visibility = "hidden";
   (function tick() {
     if (S.state !== "gate") return;
-    const t = performance.now() - t0, n = Math.floor(t / 38), k = (d) => out((t - 1700 - d) / 1500);
-    big.innerHTML = A1.slice(0, n) + "<b>" + A2.slice(0, Math.max(0, n - A1.length)) + "</b>" + (t < 1900 ? cur : "");
+    const t = performance.now() - t0, k = (d) => out((t - 1700 - d) / 1500);
     nums[0].textContent = "−" + Math.round(15 * k(0)) + "%";
     nums[1].textContent = "39 → " + Math.round(39 - 31 * k(300));
     nums[2].textContent = "68% → " + Math.round(68 - 50 * k(600)) + "%";
-    const m = Math.floor((t - 4000) / 16);
-    if (m > 0) sub.innerHTML = "<u>&gt;</u> " + SUB.slice(0, m) + (m < SUB.length || Math.floor(t / 400) % 2 ? cur : "");
-    if (m > SUB.length) go.style.visibility = "visible";
+    let e = t, n = 0; while (e >= span(GATE_LINES[n % GATE_LINES.length])) { e -= span(GATE_LINES[n % GATE_LINES.length]); n++; }
+    const [a, b, c] = GATE_LINES[n % GATE_LINES.length], hl = a.length + b.length, tH = hl * HS, tC = tH + GAP + c.length * CS;
+    let h = hl, m = c.length;                           // how many letters of each are on screen right now
+    if (e < tH) { h = Math.floor(e / HS); m = 0; } else if (e < tH + GAP) m = 0; else if (e < tC) m = Math.floor((e - tH - GAP) / CS);
+    else if (e > tC + HOLD) { const f = 1 - (e - tC - HOLD) / WIPE; h = Math.floor(hl * f); m = Math.floor(c.length * f); }
+    const blink = Math.floor(t / 400) % 2;
+    big.innerHTML = a.slice(0, h) + "<b>" + b.slice(0, Math.max(0, h - a.length)) + "</b>" + (m === 0 && h < hl ? cur : "");
+    sub.innerHTML = m > 0 || e >= tH ? "<u>&gt;</u> " + c.slice(0, m) + (m < c.length || blink ? cur : "") : "";
+    if (n > 0 || e > tH) go.style.visibility = "visible";
     requestAnimationFrame(tick);
   })();
 }
