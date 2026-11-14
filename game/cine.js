@@ -2,8 +2,8 @@
 // Space -> the engine blows and three pieces tear away -> falling to Mars -> impact -> ARES wakes alone -> someone arrives -> title.
 import * as A from "./audio.js";
 
-const FAIL = 6000, DIVE = 10500, HIT = 15000, WAKE = 17800, COME = 23200, MEET = 26000, TITLE = 27800;   // the beats, in ms
-export const CINE_MS = 32800;
+const FAIL = 6000, DIVE = 10500, HIT = 15500, WAKE = 18300, COME = 24300, MEET = 27100, TITLE = 30150;   // the beats, in ms
+export const CINE_MS = 35150;
 const W = 1280, H = 720, K = "#2e1424";
 const rnd = (i, s = 1) => { const x = Math.sin(i * 127.1 + s * 311.7) * 43758.5453; return x - Math.floor(x); };
 const STARS = Array.from({ length: 260 }, (_, i) => ({ x: rnd(i, 1) * W, y: rnd(i, 2) * H, z: 0.2 + rnd(i, 3) * 0.8, tw: rnd(i, 4) * 6 }));

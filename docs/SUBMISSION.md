@@ -77,7 +77,7 @@ Yes, AI tools were used, as follows.
   `art_src/`, and a text note in each PNG's metadata. No generated image contains NASA logos, flags or mission
   identifiers.
 - **Not AI:** all terrain, slope, thermal, rover-track and photo data is NASA/USGS data. No data was generated or
-  changed by AI. No AI model runs inside the game: ARES answers with computation and search. The opening music is a human-made track from Pixabay, not AI. All other sound is synthesised by
+  changed by AI. No AI model runs inside the game: ARES answers with computation and search. The opening music is a recorded track from Pixabay. All other sound is synthesised by
   code. No AI audio or video was used: the demo video is rendered frame by frame by code from the running game, and
   carries a "GAME ART: AI-GENERATED" label on every frame.
 
@@ -96,7 +96,7 @@ Yes, AI tools were used, as follows.
 
 ## Space Agency Partner Data and Other References
 - No space agency partner data was used.
-- Music in the opening story: "Interstellar" by QuentinGaming (Pixabay, track 580133), used under the Pixabay Content License. All other sound is synthesised by code.
+- Music in the opening story: "Epic Trailer" by nastelbom (Pixabay, track 356422), used under the Pixabay Content License. All other sound is synthesised by code.
 - three.js r160 (MIT licence) — 3D rendering. https://threejs.org
 - Fonts: Chakra Petch and Press Start 2P (SIL Open Font License), from Google Fonts.
 - Python libraries: NumPy, SciPy, Pillow, pypdf.
