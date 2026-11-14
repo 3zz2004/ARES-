@@ -21,7 +21,7 @@
   canvas#c, canvas#c3 { position:absolute; inset:0; width:100%; height:100%; display:block; }   /* absolute: their 960px size must not stretch the layout */
   canvas#c3 { display:none; background:linear-gradient(180deg, #2a1230 0%, #8a3c40 38%, #e8a064 60%, #d08458 100%); }   /* 3D terrain, under the 2D canvas, with a Mars sky */
   /* Required by the Space Apps rules: AI-generated images carry a visible mark wherever they are shown. */
-  .aimark { position:absolute; left:1.2%; top:1.2%; z-index:1; pointer-events:none; font-family:"Chakra Petch", system-ui, sans-serif; font-size:clamp(8px, .85vw, 12px); font-weight:700; letter-spacing:.1em; padding:.3em .7em; border-radius:.4em; color:#ffcf4a; background:#12060dcc; border:1px solid #ffcf4a66; }
+  .aimark { position:absolute; left:1.4%; top:1.2%; z-index:1; pointer-events:none; font-family:"Chakra Petch", system-ui, sans-serif; font-size:clamp(8px, .68vw, 10px); font-weight:500; letter-spacing:.06em; padding:.2em .6em; border-radius:.4em; color:#fff1dcb0; background:#12060d73; }
   #dim { position:absolute; right:2.5%; bottom:2.5%; z-index:2; font-size:1.2em; padding:.6em .9em; background:#2b1322; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--line), 0 .3em 0 var(--k); }
   #dim.on { background:var(--o2); color:var(--k); box-shadow:0 0 0 2px #fff, 0 .3em 0 var(--k); }
 
@@ -199,7 +199,7 @@
     #title .mshade { background:linear-gradient(180deg, #120810f2 0%, #120810dd 55%, #120810b0 100%); }
     #sites { grid-template-columns:1fr 1fr; } #levels { grid-template-columns:1fr; }
     #gate, #video, #cine { font-size:clamp(9px, 2.6vw, 14px); } #gate { padding:0 5vw; }
-    .aimark { font-size:clamp(8px, 2.2vw, 12px); }
+    .aimark { font-size:clamp(8px, 1.9vw, 10px); }
   }
 </style>
 </head>
@@ -209,7 +209,7 @@
   <div class="why"><b>WHY IT MATTERS</b><br>The first people on Mars will walk with a limited tank of oxygen. A route planned from real terrain data is the difference between a good day and an emergency. ARES lets anyone feel that — on NASA's own map of Jezero Crater.</div>
   <p class="blink">CLICK OR PRESS ANY KEY</p><small>Sound on for the full experience</small></div>
 <div id="video"><video id="vid" playsinline></video><button id="vskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
-<div id="cine"><canvas id="cv" width="1280" height="720"></canvas><div class="aimark">AI-GENERATED ART</div><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
+<div id="cine"><canvas id="cv" width="1280" height="720"></canvas><div class="aimark">AI-generated art</div><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
 <div id="title" class="screen">
   <div class="mbg"></div><div class="mshade"></div>
   <div class="mwrap">
@@ -297,7 +297,7 @@
   <div id="board">
     <canvas id="c3" width="960" height="960"></canvas>
     <canvas id="c" width="960" height="960"></canvas>
-    <div class="aimark" title="The characters, ground textures, rocks and objects were generated with AI image tools. All terrain data and photos are NASA data.">AI-GENERATED ART &middot; REAL NASA DATA</div>
+    <div class="aimark" title="The characters, ground textures, rocks and objects were generated with AI image tools. All terrain data and photos are NASA data.">AI-generated art &middot; real NASA data</div>
     <button id="dim" title="Switch between the 2D map and the 3D terrain (V)">2D</button>
     <button id="cam" title="3D camera: first person or third person (C)">3RD PERSON</button>
     <div id="legend"><p id="lstart">Press any arrow key to start</p></div>
