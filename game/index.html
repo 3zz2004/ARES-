@@ -21,7 +21,7 @@
   canvas#c, canvas#c3 { position:absolute; inset:0; width:100%; height:100%; display:block; }   /* absolute: their 960px size must not stretch the layout */
   canvas#c3 { display:none; background:linear-gradient(180deg, #2a1230 0%, #8a3c40 38%, #e8a064 60%, #d08458 100%); }   /* 3D terrain, under the 2D canvas, with a Mars sky */
   /* Required by the Space Apps rules: AI-generated images carry a visible mark wherever they are shown. */
-  .aimark { position:absolute; left:1.2%; top:1.2%; z-index:40; pointer-events:none; font-family:"Chakra Petch", system-ui, sans-serif; font-size:clamp(8px, .85vw, 12px); font-weight:700; letter-spacing:.1em; padding:.3em .7em; border-radius:.4em; color:#ffcf4a; background:#12060dcc; border:1px solid #ffcf4a66; }
+  .aimark { position:absolute; left:1.2%; top:1.2%; z-index:1; pointer-events:none; font-family:"Chakra Petch", system-ui, sans-serif; font-size:clamp(8px, .85vw, 12px); font-weight:700; letter-spacing:.1em; padding:.3em .7em; border-radius:.4em; color:#ffcf4a; background:#12060dcc; border:1px solid #ffcf4a66; }
   #dim { position:absolute; right:2.5%; bottom:2.5%; z-index:2; font-size:1.2em; padding:.6em .9em; background:#2b1322; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--line), 0 .3em 0 var(--k); }
   #dim.on { background:var(--o2); color:var(--k); box-shadow:0 0 0 2px #fff, 0 .3em 0 var(--k); }
 
@@ -155,6 +155,52 @@
   #photo { display:none; position:absolute; left:2.5%; bottom:2.5%; width:44%; background:#fff6e6; border:3px solid var(--k); border-radius:.8em; box-shadow:0 0 0 2px var(--o2), 0 .6em 2em #000a; padding:.5em; transform:rotate(-1.5deg); }
   #ptag { display:block; font-weight:normal; font-size:.62em; color:#fff6e6; background:#2e1424; border-radius:.4em; padding:.4em .6em; margin-bottom:.4em; text-align:center; }
   #photo img { display:block; width:100%; border-radius:.4em; } #cap { margin:.5em .2em .1em; color:#2e1424; font-size:.62em; line-height:1.7; }
+  /* ---- main menu: a full-window screen over a slow pan of NASA's own picture of the crater ---- */
+  #title { position:fixed; inset:0; z-index:20; align-items:stretch; justify-content:flex-start; text-align:left; padding:0; background:#120810; font-size:clamp(11px, min(1.2vw, 2.1vh), 19px); overflow:hidden; }
+  #title .mbg { position:absolute; inset:-6%; background:url(data/board.png) center/cover; image-rendering:pixelated; animation:mpan 70s ease-in-out infinite alternate; }
+  @keyframes mpan { from { transform:scale(1.05) translate(-2%, -1%); } to { transform:scale(1.28) translate(3%, 2%); } }
+  #title .mshade { position:absolute; inset:0; background:linear-gradient(90deg, #120810f7 0%, #120810e6 44%, #1208108c 100%); }
+  #title .mwrap { position:relative; z-index:1; width:100%; height:100%; display:flex; flex-direction:column; padding:5vh 6vw 3vh; overflow-y:auto; }
+  #title header { flex:none; } #title header h1 { font-size:4.6em; margin:0; letter-spacing:.06em; } #title header h2 { margin:.6em 0 0; font-size:1em; }
+  #title .mv { display:none; flex:1; min-height:0; flex-direction:column; justify-content:center; align-items:flex-start; max-width:66em; padding:1.2em 0; } #title .mv.on { display:flex; }
+  #title .mtag { max-width:30em; font-size:1.05em; margin:0 0 1.6em; line-height:1.6; }
+  #mnav { display:flex; flex-direction:column; gap:.55em; width:min(22em, 100%); }
+  #mnav button, .mback { font-family:inherit; font-weight:700; letter-spacing:.16em; text-align:left; font-size:1em; padding:.8em 1.2em; color:var(--ink); background:#ffffff0c; border:1px solid #ffffff26; border-left:4px solid transparent; border-radius:.4em; transition:background .12s, padding .12s, border-color .12s; }
+  #mnav button:hover, #mnav button:focus-visible, .mback:hover { background:#ffffff1c; border-left-color:var(--warn); padding-left:1.6em; color:#fff; outline:none; }
+  #mnav button.primary { background:var(--warn); color:var(--k); border-color:var(--warn); font-size:1.25em; } #mnav button.primary:hover { background:#ffe08a; border-left-color:#fff; color:var(--k); }
+  .mback { flex:none; font-size:.72em; padding:.5em 1em; margin-bottom:1.2em; }
+  #title h3 { font-size:1.3em; letter-spacing:.14em; margin:0 0 .8em; color:#fff; } #title .mv p { max-width:46em; } #title .mv table { margin:.5em 0; } #title .mv small { max-width:60em; }
+  #title #sites, #title #levels { width:100%; } #title #mhow { width:100%; } #title #mhow h2 { color:#fff; font-size:1.3em; letter-spacing:.14em; }
+  #title footer { flex:none; font-size:.66em; letter-spacing:.12em; color:var(--dim); margin-top:1em; text-transform:uppercase; }
+  .setrow { display:flex; align-items:center; justify-content:space-between; gap:1.5em; padding:.7em 0; border-bottom:1px solid #ffffff14; width:min(38em, 100%); } .setrow b { font-weight:600; } .setrow small { margin:0; }
+  .setrow button { flex:none; min-width:5.5em; font-family:inherit; font-weight:700; letter-spacing:.1em; padding:.5em .8em; border-radius:.4em; border:1px solid #ffffff3a; background:#0006; color:var(--dim); } .setrow button.on { background:var(--o2); border-color:var(--o2); color:var(--k); }
+
+  /* ---- touch controls: shown on touch screens and on any upright screen ---- */
+  #pad { display:none; flex:none; user-select:none; -webkit-user-select:none; touch-action:none; font-family:"Chakra Petch", sans-serif; }
+  #pad button { font-family:inherit; font-weight:700; color:var(--ink); background:#2b1322; border:1px solid #ffffff3a; border-radius:.6em; touch-action:none; -webkit-tap-highlight-color:transparent; }
+  #pad button:active { background:var(--o2); color:var(--k); }
+  #pad .dp { display:grid; grid-template:repeat(3, 1fr) / repeat(3, 1fr); gap:.25em; aspect-ratio:1; } #pad .dp button { font-size:1.5em; padding:0; }
+  #pad [data-k=ArrowUp] { grid-area:1 / 2; } #pad [data-k=ArrowLeft] { grid-area:2 / 1; } #pad [data-k=ArrowRight] { grid-area:2 / 3; } #pad [data-k=ArrowDown] { grid-area:3 / 2; }
+  #pad .ac { display:grid; gap:.4em; } #pad .ac button { font-size:.95em; letter-spacing:.06em; padding:.75em .3em; }
+  #stage.lobby #pad { display:none !important; }
+  @media (pointer:coarse) and (orientation:landscape) { #pad { display:flex; flex-direction:column; justify-content:center; gap:1.2em; width:11%; font-size:1.15em; } }
+
+  /* ---- upright screens (phones, tablets held upright): the map on top, the controls, then ARES's panel; menus fill the window ---- */
+  @media (orientation:portrait) {
+    html, body { height:auto; min-height:100%; overflow-x:hidden; overflow-y:auto; }
+    #stage { flex-direction:column; width:100vw; height:auto; top:0; transform:none; padding:2vw; gap:2.5vw; font-size:1.28vw; }
+    #board { order:1; width:100%; height:auto; }
+    #pad { order:2; display:flex; width:100%; gap:4vw; align-items:center; font-size:3.1em; } #pad .dp { width:36%; } #pad .ac { flex:1; grid-template-columns:1fr 1fr; }
+    #panel { order:3; width:100%; height:auto; font-size:2.7em; } #hero { height:7.5em; } #speech { flex:none; min-height:10em; }
+    #toast, #hint, #guide, #lstart, #dim, #cam { font-size:2.1em; } #hint { white-space:normal; width:74%; left:3%; transform:none; text-align:center; }
+    .screen:not(#title) { position:fixed; inset:0; z-index:25; font-size:clamp(11px, 3.3vw, 18px); overflow-y:auto; justify-content:flex-start; }
+    #comp { font-size:clamp(10px, 2.9vw, 16px); padding:2vw; } #comp .grid, #comp .grid.four { grid-template-columns:1fr 1fr; } #comp .sb span:nth-child(2) { display:none; }
+    #title { font-size:clamp(12px, 3.5vw, 19px); } #title .mwrap { padding:4vh 6vw 2vh; } #title header h1 { font-size:3.4em; } #title .mv { justify-content:flex-start; padding-top:1.6em; }
+    #title .mshade { background:linear-gradient(180deg, #120810f2 0%, #120810dd 55%, #120810b0 100%); }
+    #sites { grid-template-columns:1fr 1fr; } #levels { grid-template-columns:1fr; }
+    #gate, #video, #cine { font-size:clamp(9px, 2.6vw, 14px); } #gate { padding:0 5vw; }
+    .aimark { font-size:clamp(8px, 2.2vw, 12px); }
+  }
 </style>
 </head>
 <body>
@@ -164,6 +210,57 @@
   <p class="blink">CLICK OR PRESS ANY KEY</p><small>Sound on for the full experience</small></div>
 <div id="video"><video id="vid" playsinline></video><button id="vskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
 <div id="cine"><canvas id="cv" width="1280" height="720"></canvas><div class="aimark">AI-GENERATED ART</div><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
+<div id="title" class="screen">
+  <div class="mbg"></div><div class="mshade"></div>
+  <div class="mwrap">
+    <header><h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2></header>
+    <div class="mv on" data-v="main">
+      <p class="mtag">Walk the real ground of Jezero Crater. Read NASA's maps of it. Get home before your oxygen runs out.</p>
+      <nav id="mnav">
+        <button data-go="play" class="primary">&#9654;&nbsp; PLAY</button>
+        <button data-go="how">HOW IT WORKS</button>
+        <button id="watch">WATCH THE INTRO</button>
+        <button id="replay">THE STORY</button>
+        <button data-go="settings">SETTINGS</button>
+        <button data-go="credits">DATA &amp; CREDITS</button>
+      </nav>
+    </div>
+    <div class="mv" data-v="play">
+      <button class="mback" data-go="main">&#9664; BACK</button>
+      <span class="lab">1 &middot; Where did the ship come down?</span>
+      <div id="sites"></div>
+      <p id="siteabout"></p>
+      <span class="lab">2 &middot; How hard?</span>
+      <div id="levels"><button data-l="0"></button><button data-l="1"></button><button data-l="2"></button></div>
+      <p class="blink">Choose a level: click one, or press 1, 2 or 3</p>
+    </div>
+    <div class="mv" data-v="settings">
+      <button class="mback" data-go="main">&#9664; BACK</button>
+      <h3>SETTINGS</h3>
+      <div class="setrow"><div><b>Sound</b><small>Effects and ARES's voice tones (N)</small></div><button id="set-sound"></button></div>
+      <div class="setrow"><div><b>Full screen</b><small>Fill the whole display (F)</small></div><button id="set-full"></button></div>
+      <div class="setrow"><div><b>Start in 3D</b><small>Begin each walk on the 3D terrain (V switches any time)</small></div><button id="set-3d"></button></div>
+      <div class="setrow"><div><b>Labels on the map</b><small>Keep the names of things on the map while you walk (I)</small></div><button id="set-labels"></button></div>
+      <div class="setrow"><div><b>Perseverance's real track</b><small>Show where NASA's rover actually drove (P)</small></div><button id="set-rover"></button></div>
+      <div class="setrow"><div><b>Reset progress</b><small>Forget best scores and show the intro and guide again</small></div><button id="set-reset">RESET</button></div>
+    </div>
+    <div class="mv" data-v="how"><button class="mback" data-go="main">&#9664; BACK</button><div id="mhow"></div></div>
+    <div class="mv" data-v="credits">
+      <button class="mback" data-go="main">&#9664; BACK</button>
+      <h3>DATA &amp; CREDITS</h3>
+      <table>
+        <tr><td>Terrain, slope, height, 3D</td><td>MRO HiRISE Digital Terrain Model, 1 m/pixel &middot; USGS Astrogeology</td></tr>
+        <tr><td>Sand or rock</td><td>Mars Odyssey THEMIS night infrared &middot; NASA Mars Trek</td></tr>
+        <tr><td>Photo layer, close-ups</td><td>MRO HiRISE orthomosaic, 25 cm/pixel &middot; NASA Mars Trek</td></tr>
+        <tr><td>Rover track and photos</td><td>Mars 2020 Perseverance &middot; NASA/JPL-Caltech</td></tr>
+      </table>
+      <p><b style="color:var(--o2)">Team Alexstra</b> &middot; NASA Space Apps Challenge 2026, Cairo &middot; Challenge: Interplanetary Survival Guide: Martian Map.</p>
+      <p>Characters, ground textures, rocks and objects are AI-generated art and are labelled on screen. Code was written with an AI coding assistant. No data was made or changed by AI, and no AI model runs in the game.</p>
+      <small>NASA does not endorse this project. 3D by three.js (MIT).</small>
+    </div>
+    <footer>NASA Space Apps 2026 &middot; Team Alexstra &middot; Built on real NASA data</footer>
+  </div>
+</div>
 <div id="stage">
   <div id="panel">
     <div id="hero" class="card">
@@ -203,19 +300,6 @@
     <div class="aimark" title="The characters, ground textures, rocks and objects were generated with AI image tools. All terrain data and photos are NASA data.">AI-GENERATED ART &middot; REAL NASA DATA</div>
     <button id="dim" title="Switch between the 2D map and the 3D terrain (V)">2D</button>
     <button id="cam" title="3D camera: first person or third person (C)">3RD PERSON</button>
-    <div id="title" class="screen">
-      <h1>ARES</h1>
-      <h2>THE MARS SURVIVAL MAP</h2>
-      <p>A traveller from another star has crashed on Mars.<br>Find the 3 lost pieces of the ship<br>and get back before your oxygen runs out.</p>
-      <span class="lab">1 &middot; Where did the ship come down?</span>
-      <div id="sites"></div>
-      <p id="siteabout"></p>
-      <span class="lab">2 &middot; How hard?</span>
-      <div id="levels"><button data-l="0"></button><button data-l="1"></button><button data-l="2"></button></div>
-      <p class="blink">Choose a level: press 1, 2 or 3</p>
-      <div><button id="watch" class="mini">&#9654; WATCH INTRO</button> <button id="replay" class="mini">? HOW TO PLAY</button></div>
-      <div class="why"><b>WHAT YOU LEARN</b> How scientists read slope and night-heat maps to tell safe ground from deadly ground — and why a planned route saves oxygen and lives. Checked against the path NASA's Perseverance rover really drove.</div>
-    </div>
     <div id="legend"><p id="lstart">Press any arrow key to start</p></div>
     <div id="toast"></div>
     <div id="guide"><b id="gstep"></b><span id="gtext"></span><button id="gskip">SKIP GUIDE</button></div>
@@ -230,6 +314,10 @@
     <div id="photo"><b id="ptag">REAL NASA PHOTO &middot; TAKEN AT THIS SPOT</b><img id="shot" alt="Perseverance Navcam image"><p id="cap"></p></div>
     <div id="debrief" class="screen"></div>
     <div id="how" class="screen"></div>
+  </div>
+  <div id="pad">
+    <div class="dp"><button data-k="ArrowUp">&#9650;</button><button data-k="ArrowLeft">&#9664;</button><button data-k="ArrowRight">&#9654;</button><button data-k="ArrowDown">&#9660;</button></div>
+    <div class="ac"><button data-k="Space">ARES LEADS</button><button data-k="KeyM">MAP</button><button data-k="KeyI">LABELS</button><button data-k="KeyE">COMPUTER</button></div>
   </div>
 </div>
 <script type="module" src="main.js"></script>
