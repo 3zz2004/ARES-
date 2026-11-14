@@ -26,8 +26,10 @@ function drawChar(g, sheet, anim, frame, x, footY, scale, flip = false) {
 
 // ---------- board (real data, built by tools/build_tiles.py) ----------
 async function loadBoard() {
-  const image = (src) => new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = src; });
-  const json = (src) => fetch(src, { cache: "no-cache" }).then((r) => r.json());   // always check for a newer data file
+  // Every file asked for moves the loading bar on, so a slow line shows progress instead of a blank page.
+  const prog = { n: 0, of: 0 }, counted = (p) => { prog.of++; return p.finally(() => { prog.n++; const bar = document.querySelector("#boot i"); if (bar) bar.style.width = `${(prog.n / prog.of) * 100}%`; }); };
+  const image = (src) => counted(new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = src; }));
+  const json = (src) => counted(fetch(src, { cache: "no-cache" }).then((r) => r.json()));   // always check for a newer data file
   const [pack, img, height, astro, astroMeta, ares, aresMeta, propSizes, tex] = await Promise.all([json("data/board.json"), image("data/board.png"), image("data/height.png"),
     image("assets/astro.png"), json("assets/astro.json"), image("assets/ares.png"), json("assets/ares.json"), json("assets/props/props.json"),
     Promise.all(TEXTURES.map((n) => image(`assets/tex/${n}.png`)))]);
@@ -843,6 +845,7 @@ function openGate() {
 // blows (6.0 s), falls away at the impact (15.5 s) and returns on the title (30.4 s). The beats in cine.js are set to match it.
 const score = new Audio("assets/story.mp3"); score.preload = "auto"; score.volume = 0.9;
 function playCine() { S.state = "cine"; $("title").style.display = "none"; $("cine").style.display = "block"; A.music(false); startCine(S);
+  if (S.video && !$("vid").src.endsWith(S.video)) { const v = $("vid"); v.preload = "auto"; v.src = S.video; v.load(); }   // the walk-through downloads while the story plays
   score.muted = A.isMuted(); score.currentTime = 0; score.play().catch(() => { /* no sound allowed yet: the pictures still play */ }); }
 function endCine(skipped) {                  // the story ran to its end: the walk-through follows. Skipped: straight to the menu.
   $("cine").style.display = "none";
@@ -854,7 +857,7 @@ function endCine(skipped) {                  // the story ran to its end: the wa
 $("cskip").addEventListener("click", () => endCine(true));
 $("watch").addEventListener("click", (e) => { e.target.blur(); A.unlock(); playCine(); });
 function playVideo() {
-  S.state = "video"; const v = $("vid"); $("video").style.display = "block"; v.src = S.video; v.currentTime = 0;
+  S.state = "video"; const v = $("vid"); $("video").style.display = "block"; if (!v.src.endsWith(S.video)) v.src = S.video; v.currentTime = 0;
   v.play().catch(() => endVideo());
 }
 function endVideo() {
@@ -931,9 +934,9 @@ loadBoard().then(async (t) => {
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
     T.art.style.cssText = `position:absolute;left:${-x * ART}px;top:${-y * ART}px`; document.body.append(T.art); return; }
   if (new URLSearchParams(location.search).has("intro")) { try { localStorage.removeItem("ares-seen-intro"); } catch { /* private mode */ } }   // ?intro shows the opening again
-  S.state = "gate"; $("gate").style.display = "flex"; gateFx();
+  S.state = "gate"; $("boot").style.display = "none"; $("gate").style.display = "flex"; gateFx();
   for (const f of ["assets/intro.mp4", "assets/intro.webm"]) {   // is an intro video installed?
     try { const r = await fetch(f, { method: "HEAD" }); if (r.ok && (r.headers.get("content-type") || "").startsWith("video")) { S.video = f; break; } } catch { /* no video */ }
   }
   requestAnimationFrame(frame);
-}).catch((e) => { $("title").innerHTML = "<h2>Could not load terrain data</h2><small>" + e + "</small>"; });
+}).catch((e) => { $("boot").style.display = "none"; $("title").innerHTML = "<h2>Could not load terrain data</h2><small>" + e + "</small>"; });
