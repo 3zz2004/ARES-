@@ -27,7 +27,10 @@ function drawChar(g, sheet, anim, frame, x, footY, scale, flip = false) {
 // ---------- board (real data, built by tools/build_tiles.py) ----------
 async function loadBoard() {
   // Every file asked for moves the loading bar on, so a slow line shows progress instead of a blank page.
-  const prog = { n: 0, of: 0 }, counted = (p) => { prog.of++; return p.finally(() => { prog.n++; const bar = document.querySelector("#boot i"); if (bar) bar.style.width = `${(prog.n / prog.of) * 100}%`; }); };
+  const STEPS = ["Reading NASA's terrain model of Jezero Crater", "Loading slopes and night heat", "Loading the rover's real track", "Painting the ground", "Waking ARES"];
+  const prog = { n: 0, of: 0, top: 0 }, counted = (p) => { prog.of++; return p.finally(() => { prog.n++;
+    const f = Math.max(prog.top, (prog.n / Math.max(prog.of, 60)) * 0.96); prog.top = f;   // never runs backwards when more files are asked for
+    document.querySelector("#boot i").style.width = `${3 + f * 97}%`; $("bootpct").textContent = `${Math.round(f * 100)}%`; $("bootmsg").textContent = STEPS[Math.min(STEPS.length - 1, Math.floor(f * STEPS.length))]; }); };
   const image = (src) => counted(new Promise((ok, bad) => { const im = new Image(); im.onload = () => ok(im); im.onerror = bad; im.src = src; }));
   const json = (src) => counted(fetch(src, { cache: "no-cache" }).then((r) => r.json()));   // always check for a newer data file
   const [pack, img, height, astro, astroMeta, ares, aresMeta, propSizes, tex] = await Promise.all([json("data/board.json"), image("data/board.png"), image("data/height.png"),
@@ -934,7 +937,9 @@ loadBoard().then(async (t) => {
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
     T.art.style.cssText = `position:absolute;left:${-x * ART}px;top:${-y * ART}px`; document.body.append(T.art); return; }
   if (new URLSearchParams(location.search).has("intro")) { try { localStorage.removeItem("ares-seen-intro"); } catch { /* private mode */ } }   // ?intro shows the opening again
-  S.state = "gate"; $("boot").style.display = "none"; $("gate").style.display = "flex"; gateFx();
+  S.state = "gate"; $("gate").style.display = "flex";
+  document.querySelector("#boot i").style.width = "100%"; $("bootpct").textContent = "100%"; $("bootmsg").textContent = "Ready";   // full power, then the loader fades away
+  setTimeout(() => { $("boot").classList.add("out"); gateFx(); setTimeout(() => ($("boot").style.display = "none"), 500); }, 450);
   for (const f of ["assets/intro.mp4", "assets/intro.webm"]) {   // is an intro video installed?
     try { const r = await fetch(f, { method: "HEAD" }); if (r.ok && (r.headers.get("content-type") || "").startsWith("video")) { S.video = f; break; } } catch { /* no video */ }
   }
