@@ -9,6 +9,9 @@
 const STOP = new Set("a an the is are was were be to of in on at for and or it its this that with do does did how what where when can could would should i you my your me we our he she they them there here about from as by if so than then too very just not no".split(" "));
 const words = (s) => s.toLowerCase().replace(/[^a-z0-9*°'é ]+/g, " ").split(/\s+/).filter((w) => w && !STOP.has(w)).map((w) => (w.length > 4 && w.endsWith("s") ? w.slice(0, -1) : w));
 
+// Words that shape a question but say nothing about its subject. A match on these alone is not a match.
+const GENERIC = new Set("who whom whose why which tell explain mean meaning much many long thing name called work happen say know give show can't cannot don't doesn't isn't aren't won't didn't get got make made need want like".split(" "));
+
 let docs = [], idf = new Map(), avgLen = 1;
 
 /** Index the knowledge base (BM25): how rare each word is, and how long each entry is. */
@@ -28,6 +31,13 @@ export function retrieve(question, vars = {}) {
     if (score > top) { top = score; best = d; }
   }
   if (!best || top < 1.1) return null;
+  // The subject of the question has to be in the entry. "Who is the president" shares only "who" with anything here,
+  // so it is refused instead of being answered with whatever entry happens to contain "who".
+  const subject = q.filter((t) => !GENERIC.has(t));
+  if (subject.length) {
+    const found = subject.filter((t) => best.tf.has(t)).length, unknown = subject.filter((t) => !idf.has(t)).length;
+    if (found < Math.ceil(subject.length / 2) || unknown >= found) return null;
+  }
   const fill = (s) => s.replace(/\{(\w+)\}/g, (_, k) => (k in vars ? vars[k] : "?"));
   return { text: fill(best.text), source: fill(best.source), id: best.id, score: top, next: related(best) };
 }
