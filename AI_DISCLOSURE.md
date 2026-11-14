@@ -1,4 +1,4 @@
-# AI disclosure — ARES: A Jezero Marswalk
+# AI disclosure — ARES: The Mars Survival Map
 
 NASA Space Apps asks teams to say clearly where and how AI tools were used. This is the full list.
 

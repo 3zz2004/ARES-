@@ -7,7 +7,7 @@ Things to fill in before pasting are marked `[[ ... ]]`.
 ---
 
 ## Project Name
-ARES — A Jezero Marswalk
+ARES — The Mars Survival Map
 
 ## High-Level Project Summary
 ARES is a browser game that teaches how to read a map of Mars in order to stay alive on it. You are an astronaut on

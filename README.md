@@ -1,4 +1,4 @@
-# ARES — A Jezero Marswalk
+# ARES — The Mars Survival Map
 
 **NASA Space Apps Challenge 2026 · Cairo · Team Alexstra**
 Challenge: *Interplanetary Survival Guide: Martian Map*

@@ -104,7 +104,7 @@ export function drawCine(g, state, T, onEnd) {
     g.fillStyle = K; g.fillText("ARES", 10, 10); g.fillStyle = "#ffcf4a"; g.fillText("ARES", 0, 0); g.restore();
     if (t > 26900 && t < 27300) { g.fillStyle = `rgba(255,255,255,${1 - (t - 26900) / 400})`; g.fillRect(0, 0, W, H); }
     g.textAlign = "center"; g.globalAlpha = seg(t, 27400, 28400);
-    g.font = "30px 'Press Start 2P', monospace"; g.fillStyle = "#4ff0d0"; g.fillText("A JEZERO MARSWALK", W / 2, 420);
+    g.font = "30px 'Press Start 2P', monospace"; g.fillStyle = "#4ff0d0"; g.fillText("THE MARS SURVIVAL MAP", W / 2, 420);
     g.font = "17px 'Press Start 2P', monospace"; g.fillStyle = "#fff1dc"; g.fillText("Read real NASA data of Mars. Plan the walk.", W / 2, 478);
     g.globalAlpha = seg(t, 28300, 29300); g.fillStyle = "#ffcf4a"; g.fillText("The right route saves oxygen. It saves lives.", W / 2, 520); g.globalAlpha = 1;
   }
