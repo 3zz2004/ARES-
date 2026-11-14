@@ -21,8 +21,9 @@ the real rover: Perseverance's own track stays on the ground our map calls safe.
 browser, with nothing to install.
 
 ## Link to Project Demo
-https://3zz2004.github.io/ARES-/demo/
-(7 slides, English, public, no login.)
+https://3zz2004.github.io/ARES-/demo/video.html
+(29-second video, English, public, no login. Direct file: https://3zz2004.github.io/ARES-/demo/ares-demo.mp4 .
+A 7-slide version is also at https://3zz2004.github.io/ARES-/demo/ — submit only one of the two links.)
 
 ## Link to Final Project
 https://3zz2004.github.io/ARES-/
@@ -79,7 +80,8 @@ Yes, AI tools were used, as follows.
   identifiers.
 - **Not AI:** all terrain, slope, thermal, rover-track and photo data is NASA/USGS data. No data was generated or
   changed by AI. No AI model runs inside the game: ARES answers with computation and search. Sound is synthesised by
-  code. No AI audio or video was used.
+  code. No AI audio or video was used: the demo video is rendered frame by frame by code from the running game, and
+  carries a "GAME ART: AI-GENERATED" label on every frame.
 
 ## NASA Data
 - **HiRISE Digital Terrain Model of Jezero Crater, 1 m/pixel** (MRO HiRISE; USGS Astrogeology, Mars 2020 Terrain
