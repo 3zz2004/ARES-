@@ -70,11 +70,23 @@ this window, not as a calibrated temperature.
 with NumPy, SciPy and Pillow for the data tools; Git and GitHub Pages for hosting.
 
 ## Use of Artificial Intelligence
-Yes, AI tools were used, as follows.
-- **Code:** written with an AI coding assistant (Claude, by Anthropic), directed, reviewed and tested by the team.
-  This is stated in the README, in `AI_DISCLOSURE.md`, and in a comment and metadata tag in the game's HTML.
-- **Images:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation
-  from prompts written by the team, then cut and placed by our own code. Every one is marked as AI-generated: a visible
+Yes. AI tools were used to build what the team designed.
+
+The team's own work:
+- **The idea and the design.** A survival walk on real Mars data with a companion who reads the data for you; the rules,
+  the levels, the oxygen, the landing sites on ground no rover has reached.
+- **The decisions.** What goes in and what stays out. Examples: a radiation layer was removed because no real data
+  backed it; ARES may answer only from NASA data and the mission, and must name his source; numbers on the map were
+  replaced by labels; the route had to be checked against the real rover.
+- **Direction, art direction and testing.** Every build was played by the team, and the changes that followed came from
+  that play. The team chose the look, the name, the story and the music.
+
+Where AI was used:
+- **Code:** written with an AI coding assistant (Claude, by Anthropic) to the team's design, then tested and corrected
+  by the team build by build. This is stated in the README, in `AI_DISCLOSURE.md`, and in a comment and metadata tag in
+  the game's HTML.
+- **Images:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation,
+  to the team's art direction, then cut and placed by our own code. Every one is marked as AI-generated: a visible
   "AI-GENERATED ART" label on the game screen and in the opening cinematic, a visible banner on every source sheet in
   `art_src/`, and a text note in each PNG's metadata. No generated image contains NASA logos, flags or mission
   identifiers.

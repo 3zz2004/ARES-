@@ -143,10 +143,21 @@ python tools/build_rover.py
 Requires Python 3 with `numpy`, `Pillow` and `scipy`. `build_rover.py` expects `data/M20_waypoints.json` and
 `data/M20_traverse.json` from `https://mars.nasa.gov/mmgis-maps/M20/Layers/json/`.
 
-## Use of AI
-- **Code:** written with an AI coding assistant (Claude, by Anthropic) under the team's direction.
-- **Art:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation from the team's prompts,
-  then cut and placed by our own code. Every AI image is marked: an "AI-GENERATED ART" label on screen, a banner on
+## Who did what, and how AI was used
+The team's own work:
+- **The idea and the design.** A survival walk on real Mars data with a companion who reads the data for you; the rules,
+  the levels, the oxygen, the landing sites on ground no rover has reached.
+- **The decisions.** What goes in and what stays out. Examples: a radiation layer was removed because no real data
+  backed it; ARES may answer only from NASA data and the mission, and must name his source; numbers on the map were
+  replaced by labels; the route had to be checked against the real rover.
+- **Direction, art direction and testing.** Every build was played by the team, and the changes that followed came from
+  that play. The team chose the look, the name, the story and the music.
+
+AI tools were used as the Space Apps rules allow, and are declared here:
+- **Code:** written with an AI coding assistant (Claude, by Anthropic) to the team's design, then tested and corrected
+  by the team build by build.
+- **Art:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation, to
+  the team's art direction, then cut and placed by our own code. Every AI image is marked: an "AI-GENERATED ART" label on screen, a banner on
   each sheet in `art_src/`, and a note in each PNG's metadata (`tools/mark_ai_art.py`). No NASA logo or flag appears in
   any generated image. Full list: [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
 - **In the game:** no AI model runs inside the game. ARES answers with tools and retrieval (see "How ARES answers").
