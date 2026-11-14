@@ -123,16 +123,29 @@
   #sites button:hover { border-color:#fff; } #sites button.on { border-color:var(--warn); background:#ffcf4a1c; box-shadow:0 0 0 1px var(--warn); }
   #sites b { display:block; font-size:.74em; font-weight:700; color:#fff; } #sites span { display:block; margin-top:.25em; font-size:.5em; font-weight:600; letter-spacing:.06em; color:var(--dim); } #sites span.new { color:var(--o2); }
   #siteabout { margin:.1em 0 .3em; font-size:.66em; color:var(--dim); min-height:1.5em; }
-  #hint { display:none; position:absolute; left:50%; bottom:3%; transform:translateX(-50%); z-index:2; font-family:"Chakra Petch", sans-serif; font-size:1.15em; font-weight:700; letter-spacing:.1em; padding:.45em 1em; border-radius:2em; color:var(--ink); background:#180b14e6; border:1px solid #4ff0d088; }
+  #hint { display:none; position:absolute; left:50%; bottom:3%; transform:translateX(-50%); z-index:2; cursor:pointer; white-space:nowrap; font-family:"Chakra Petch", sans-serif; font-size:1.3em; font-weight:700; letter-spacing:.08em; padding:.55em 1.1em; border-radius:.6em; color:var(--ink); background:#180b14f0; border:2px solid #4ff0d0; animation:hintpulse 1.2s ease-in-out infinite; }
+  #hint span { display:block; font-size:.68em; font-weight:500; letter-spacing:.04em; color:var(--dim); margin-top:.15em; text-align:center; }
+  @keyframes hintpulse { 50% { box-shadow:0 0 1.2em #4ff0d088; } }
   #hint b { color:var(--k); background:var(--o2); border-radius:.3em; padding:0 .45em; margin-right:.4em; }
-  #comp { display:none; z-index:6; justify-content:flex-start; overflow-y:auto; background:#0e0810fa; font-size:1.25em; padding:3%; gap:.35em; }
-  #comp h2 { margin:.2em 0 .6em; } #comp .lab { align-self:flex-start; margin-top:.5em; }
-  #comp .shots { display:grid; grid-template-columns:repeat(3, 1fr); gap:.6em; width:100%; } #comp .shots.four { grid-template-columns:repeat(4, 1fr); }
-  #comp figure { margin:0; text-align:left; border:1px solid #ffffff1c; border-radius:.6em; overflow:hidden; background:#ffffff08; }
-  #comp figure img, #comp figure.locked div { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; } #comp .four img { aspect-ratio:1; }
-  #comp figure.locked div { display:grid; place-items:center; font-size:2.4em; color:#ffffff33; background:#0006; }
-  #comp figcaption { padding:.45em .6em; font-size:.62em; line-height:1.4; color:var(--dim); } #comp figcaption b { display:block; color:#fff; font-size:1.15em; }
-  #comp table { width:100%; font-size:.74em; }
+  #comp { display:none; z-index:6; padding:2.5%; background:#008080; font-family:"Courier New", ui-monospace, monospace; font-size:1.6em; font-weight:700; color:#000; align-items:stretch; justify-content:flex-start; text-align:left; gap:0; }
+  #comp .win { flex:1; min-height:0; display:flex; flex-direction:column; background:#c0c0c0; border:2px solid; border-color:#fff #404040 #404040 #fff; box-shadow:.3em .3em 0 #0006; }
+  #comp .tb { display:flex; align-items:center; justify-content:space-between; gap:1em; background:linear-gradient(90deg,#000080,#1084d0); color:#fff; font-weight:700; padding:.3em .3em .3em .6em; font-size:.85em; letter-spacing:.04em; }
+  #comp button { font:inherit; font-weight:700; color:#000; background:#c0c0c0; border:2px solid; border-color:#fff #404040 #404040 #fff; padding:.3em .7em; cursor:pointer; border-radius:0; letter-spacing:0; }
+  #comp button:active, #comp .tabs button.on { border-color:#404040 #fff #fff #404040; background:#dfdfdf; }
+  #comp .tabs button.on { background:#fff; }
+  #comp .tabs { display:flex; gap:.3em; padding:.5em .5em 0; flex-wrap:wrap; font-size:.8em; }
+  #comp .body { flex:1; min-height:0; overflow-y:auto; margin:.5em; padding:.8em; background:#fff; border:2px solid; border-color:#404040 #fff #fff #404040; font-size:.78em; line-height:1.45; }
+  #comp .body p { margin:0 0 .8em; color:#000; }
+  #comp .grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:.7em; } #comp .grid.four { grid-template-columns:repeat(4, 1fr); }
+  #comp figure { margin:0; border:1px solid #808080; background:#c0c0c0; padding:.25em; cursor:zoom-in; text-align:left; border-radius:0; }
+  #comp figure img { display:block; width:100%; aspect-ratio:4/3; object-fit:cover; background:#000; } #comp .four img { aspect-ratio:1; }
+  #comp figcaption { padding:.35em .2em .1em; font-size:.84em; line-height:1.35; color:#000; } #comp figcaption b { display:block; color:#000080; }
+  #comp .flag { display:inline-block; background:#000080; color:#fff; padding:0 .4em; margin-top:.25em; font-weight:700; } #comp .flag.got { background:#006400; }
+  #comp table { width:100%; border-collapse:collapse; font-size:1em; color:#000; }
+  #comp td { border-bottom:1px solid #c0c0c0; padding:.4em .3em; vertical-align:top; color:#000; } #comp td:first-child { font-weight:700; width:44%; } #comp td small { display:block; color:#555; font-weight:400; }
+  #comp .sb { display:flex; justify-content:space-between; gap:1em; padding:.3em .6em .4em; font-size:.68em; }
+  #comp .view { display:none; position:absolute; inset:7% 9%; z-index:2; flex-direction:column; background:#c0c0c0; border:2px solid; border-color:#fff #404040 #404040 #fff; box-shadow:.3em .3em 0 #0008; cursor:zoom-out; }
+  #comp .view img { flex:1; min-height:0; width:100%; object-fit:contain; background:#000; } #comp .view div:last-child { padding:.4em .6em; font-size:.72em; }
   #levels { display:grid; grid-template-columns:repeat(3, 1fr); gap:.7em; width:94%; margin:.7em 0 .6em; }
   #levels button { font-family:inherit; text-align:left; padding:.8em .9em; color:var(--ink); background:linear-gradient(180deg, #2a1422, #180b14); border:1px solid #ffffff24; border-radius:.8em; box-shadow:0 .4em 1.2em #0007; transition:transform .12s, border-color .12s; }
   #levels button:hover { border-color:var(--warn); transform:translateY(-.15em); }
@@ -192,7 +205,7 @@
     <button id="cam" title="3D camera: first person or third person (C)">3RD PERSON</button>
     <div id="title" class="screen">
       <h1>ARES</h1>
-      <h2>STRANDED IN JEZERO CRATER</h2>
+      <h2>THE MARS SURVIVAL MAP</h2>
       <p>A traveller from another star has crashed on Mars.<br>Find the 3 lost pieces of the ship<br>and get back before your oxygen runs out.</p>
       <span class="lab">1 &middot; Where did the ship come down?</span>
       <div id="sites"></div>
@@ -212,7 +225,7 @@
       <div id="idots"></div>
       <div id="ibtn"><button id="inext">NEXT &#9654;</button><button id="iskip">SKIP</button></div>
     </div>
-    <div id="hint"><b>E</b> SHIP COMPUTER</div>
+    <div id="hint"><b>E</b> OPEN THE SHIP COMPUTER<span>NASA photos, orbital maps and data of this ground</span></div>
     <div id="comp" class="screen"></div>
     <div id="photo"><b id="ptag">REAL NASA PHOTO &middot; TAKEN AT THIS SPOT</b><img id="shot" alt="Perseverance Navcam image"><p id="cap"></p></div>
     <div id="debrief" class="screen"></div>

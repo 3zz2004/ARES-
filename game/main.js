@@ -192,7 +192,7 @@ function start(level = S.level ?? LEVELS[0]) {
     rover: ["PERSEVERANCE'S REAL DRIVE", "Where NASA's rover actually went"],
     part: ["SHIP PIECE  +100", site.visited ? "At a real rover stop" : "Ground no rover has reached"],
     tank: ["AIR TANK  +25% OXYGEN", "On steep or sandy ground"],
-    home: ["THE WRECK", "Bring all 3 pieces back here"] };
+    home: ["THE WRECK \u00b7 SHIP COMPUTER", "Bring the 3 pieces here. Press E here: NASA photos + data"] };
   S.tagAt = {};
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
   S.showRover = true;
@@ -405,28 +405,49 @@ $("chips").addEventListener("click", (e) => { const b = e.target.closest("button
 
 // ---------- loop ----------
 // ---------- the ship's computer: everything NASA has on this ground, in one place (E at the wreck) ----------
-function openComp() {
-  S.paused = true; A.ui(); const R = T.rover.stats, I = S.impact;
-  const shots = S.parts.map((p) => p.done
-    ? `<figure><img src="${p.stop ? p.stop.img : p.orbit.img}" alt=""><figcaption><b>${p.name}</b>${p.stop ? `Perseverance Navcam, sol ${p.stop.sol} (${p.stop.date})` : `HiRISE from orbit, ${p.orbit.far_m} m from any rover track`}</figcaption></figure>`
-    : `<figure class="locked"><div>?</div><figcaption><b>${p.name}</b>Not found yet. Its image is stored where it lies.</figcaption></figure>`).join("");
-  const map = (src, name, text) => `<figure><img src="${src}" alt=""><figcaption><b>${name}</b>${text}</figcaption></figure>`;
-  $("comp").innerHTML = `<h2>SHIP COMPUTER &middot; MISSION ARCHIVE</h2>
-    <span class="lab">Images recovered &middot; ${S.parts.filter((p) => p.done).length} of 3</span><div class="shots">${shots}</div>
-    <span class="lab">What the orbiters saw of this ground</span><div class="shots four">
-      ${map("data/board.png", "Photo", "MRO HiRISE, 25 cm per pixel")}${map("data/height.png", "Height", "HiRISE terrain model, contour every 5 m")}
-      ${map("data/slope.png", "Slope", `HiRISE terrain model; red is over ${SLOPE_LIMIT}°`)}${map("data/heat.png", "Night heat", "Mars Odyssey THEMIS; cold is sand, warm is rock")}</div>
-    <span class="lab">This walk</span><table>
-      <tr><td>Landing site</td><td>${S.site.visited ? "Octavia E. Butler Landing (visited by the rover)" : `${S.site.name.split(":")[0]} — ${S.site.far_m} m from any rover track`}</td></tr>
-      <tr><td>Oxygen left</td><td>${(Math.max(0, 1 - S.spent / S.tank) * 100).toFixed(0)}%</td></tr>
-      <tr><td>Walked</td><td>${S.walked.toFixed(0)} m, ${S.offSteps} of ${S.steps} jumps off ARES's route</td></tr>
-      ${I ? `<tr><td>Planned route vs the shortest way</td><td>${(I.save * 100).toFixed(0)}% less oxygen, danger tiles ${I.bad0} &rarr; ${I.bad1}</td></tr>` : ""}
-      <tr><td>Terrain model vs the rover's own heights</td><td>&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops</td></tr></table>
-    <div><button class="mini" id="compclose">E &middot; BACK TO THE WALK</button> <button class="mini" id="compend">END THE MISSION HERE</button></div>`;
-  $("comp").style.display = "flex";
-  $("compclose").onclick = closeComp; $("compend").onclick = () => { closeComp(); end("home", ""); };
+function openComp(tab = S.compTab || 0) {
+  if (!S.paused) A.ui(); S.paused = true; S.compTab = tab; const R = T.rover.stats, I = S.impact, n = T.slope.length, all = Array.from({ length: n }, (_, j) => j);
+  const fig = (src, name, text, flag = "") => `<figure data-src="${src}" data-cap="${`${name} — ${text}`.replace(/"/g, "&quot;")}"><img src="${src}" alt=""><figcaption><b>${name}</b>${text}${flag}</figcaption></figure>`;
+  const mark = (p) => (p ? `<br><span class="flag ${p.done ? "got" : ""}">${p.done ? "RECOVERED" : "LIES HERE"}: ${p.name.toUpperCase()}</span>` : "");
+  const row = (k, v, src) => `<tr><td>${k}</td><td>${v}<small>${src}</small></td></tr>`, pc = (f) => `${((all.filter(f).length / n) * 100).toFixed(0)}%`;
+  let body;
+  if (tab === 0) body = S.site.visited
+    ? `<p>C:\\NASA\\NAVCAM&gt; ${T.rover.stops.length} real photos Perseverance took on this ground. Click a picture to enlarge it.</p><div class="grid">${T.rover.stops.map((s) => fig(s.img, `SOL ${s.sol} &middot; ${s.date}`, `Perseverance Navcam. ${s.credit}`, mark(S.parts.find((q) => q.stop && q.stop.img === s.img)))).join("")}</div>`
+    : `<p>C:\\NASA\\HIRISE&gt; No rover has been here, so there are no photos from the ground. These are NASA's close-ups from orbit. Click a picture to enlarge it.</p><div class="grid">${S.parts.map((p) => fig(p.orbit.img, `${p.orbit.lat}&deg; N, ${p.orbit.lon}&deg; E`, `HiRISE from orbit, 25 cm per pixel. ${p.orbit.far_m} m from any rover track. NASA/JPL-Caltech/Univ. of Arizona`, mark(p))).join("")}</div>`;
+  else if (tab === 1) body = `<p>C:\\NASA\\ORBIT&gt; What the orbiters saw of this exact ground. The game is built from these four files.</p><div class="grid four">
+      ${fig("data/board.png", "PHOTO", "MRO HiRISE, 25 cm per pixel")}${fig("data/height.png", "HEIGHT", "HiRISE terrain model, contour every 5 m")}
+      ${fig("data/slope.png", "SLOPE", `HiRISE terrain model; red is over ${SLOPE_LIMIT}&deg;`)}${fig("data/heat.png", "NIGHT HEAT", "Mars Odyssey THEMIS; cold is sand, warm is rock")}</div>`;
+  else if (tab === 2) body = `<p>C:\\NASA\\DATA&gt; Measured live from the NASA layers loaded in this game.</p><table>
+      ${row("Window on Mars", `1.60 km &times; 1.52 km, centred on ${T.center.lat}&deg; N, ${T.center.lon}&deg; E`, `${T.cols} &times; ${T.rows} tiles of ${T.cell_m} m`)}
+      ${row("Lowest to highest ground", `${T.elev_range_m[0].toFixed(0)} m to ${T.elev_range_m[1].toFixed(0)} m`, "HiRISE terrain model, 1 m per pixel")}
+      ${row("Average slope", `${R.board_mean_slope}&deg; on the whole board, ${R.rover_mean_slope}&deg; under the real rover`, "HiRISE terrain model + NASA rover traverse")}
+      ${row("Too steep to cross", `${T.slope.filter((s) => s > SLOPE_LIMIT).length} of ${n} tiles are over ${SLOPE_LIMIT}&deg;`, "HiRISE terrain model")}
+      ${row("Dangerous to step on", `${all.filter((j) => cost.passable(j) && cost.risk(j) > 0).length} of ${n} tiles`, "HiRISE slope + THEMIS night heat")}
+      ${row("Loose sand / solid rock", `${pc((j) => tileKind(T, j) === "dune")} sand, ${pc((j) => tileKind(T, j) === "slab")} rock`, "Mars Odyssey THEMIS night infrared")}
+      ${row("Perseverance on this board", `sols ${R.drive_sols[0]} to ${R.drive_sols[1]}, ${R.waypoints} stops`, "NASA Mars 2020 localisation data")}
+      ${row("Our heights against the rover's own", `&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops`, "terrain model checked against the rover")}</table>`;
+  else body = `<p>C:\\ARES\\LOG&gt; This walk so far.</p><table>
+      ${row("Landing site", S.site.visited ? "Octavia E. Butler Landing" : S.site.name.split(":")[0], S.site.visited ? "visited by the rover" : `${S.site.far_m} m from any rover track`)}
+      ${row("Ship pieces", `${S.parts.filter((p) => p.done).length} of 3 recovered`, "bring them all back here")}
+      ${row("Oxygen left", `${(Math.max(0, 1 - S.spent / S.tank) * 100).toFixed(0)}%`, "paused while this computer is open")}
+      ${row("Walked", `${S.walked.toFixed(0)} m`, `${S.offSteps} of ${S.steps} jumps off ARES's route`)}
+      ${I ? row("Planned route against the shortest way", `${(I.save * 100).toFixed(0)}% less oxygen, danger tiles ${I.bad0} &rarr; ${I.bad1}, accident odds ${(I.odds0 * 100).toFixed(0)}% &rarr; ${(I.odds1 * 100).toFixed(0)}%`, "A* on NASA slope and night-heat data") : ""}</table>
+      <p style="margin-top:1em"><button id="compend">END THE MISSION HERE</button></p>`;
+  $("comp").innerHTML = `<div class="win"><div class="tb"><span>ARES-OS 1.0 &nbsp;&middot;&nbsp; SHIP COMPUTER &nbsp;&middot;&nbsp; MISSION ARCHIVE</span><button id="compclose" title="Back to the walk (E)">X</button></div>
+    <div class="tabs">${["IMAGES", "ORBIT MAPS", "GROUND DATA", "THIS WALK"].map((t, k) => `<button data-tab="${k}" class="${k === tab ? "on" : ""}">${k + 1} ${t}</button>`).join("")}</div>
+    <div class="body">${body}</div>
+    <div class="sb"><span>OXYGEN PAUSED</span><span>1-4 or arrows: folders &nbsp;&middot;&nbsp; E: back to the walk</span><span>ALL IMAGES AND DATA: NASA</span></div></div>
+    <div class="view" id="compview"><div class="tb"><span>IMAGE VIEWER</span><button>X</button></div><img alt=""><div></div></div>`;
+  $("comp").style.display = "flex"; document.querySelector("#board .aimark").style.display = "none";   // nothing AI-made is on this screen
+  $("comp").onclick = (e) => { const v = $("compview"), t = e.target.closest("[data-tab]"), f = e.target.closest("figure");
+    if (e.target.closest("#compview")) v.style.display = "none";
+    else if (e.target.closest("#compclose")) closeComp();
+    else if (e.target.closest("#compend")) { closeComp(); end("home", ""); }
+    else if (t) openComp(+t.dataset.tab);
+    else if (f) { v.querySelector("img").src = f.dataset.src; v.lastElementChild.textContent = f.dataset.cap.replace(/&[a-z]+;/g, " "); v.style.display = "flex"; } };
 }
-function closeComp() { S.paused = false; $("comp").style.display = "none"; }
+$("hint").addEventListener("click", () => { if (S.state === "play" && !S.paused && S.cell === S.home) openComp(); });
+function closeComp() { S.paused = false; $("comp").style.display = "none"; document.querySelector("#board .aimark").style.display = ""; }
 
 function update(dt) {
   if (S.state !== "play" || S.paused) return;
@@ -622,6 +643,13 @@ function draw(now) {
       if (t.sub) { ctx.font = SF; ctx.fillStyle = "#ecdccd"; ctx.fillText(t.sub, x + 13, y + 40); }
     }
   }
+  if (S.state === "play" && !S.tips && S.cell !== S.home) {      // labels off: the wreck still shows where the computer is
+    const [hx, hy] = scr(...mid(S.home), 18), txt = "SHIP COMPUTER \u00b7 PRESS E HERE", lift = zoomedNow ? (d3 ? 170 : 92) : 30;
+    ctx.font = "700 15px 'Chakra Petch', sans-serif"; const w = ctx.measureText(txt).width + 22, x = Math.max(8, Math.min(CW - 8 - w, hx - w / 2)), y = hy - lift - 28;
+    if (hx > 0 && hx < CW && y > 8 && hy < CW) { ctx.globalAlpha = 0.72 + 0.28 * Math.sin(now / 280);
+      ctx.fillStyle = "#12060df0"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, 28, 6); else ctx.rect(x, y, w, 28); ctx.fill(); ctx.strokeStyle = "#4ff0d0"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hx - 6, y + 28); ctx.lineTo(hx, y + 36); ctx.lineTo(hx + 6, y + 28); ctx.fillStyle = "#4ff0d0"; ctx.fill();
+      ctx.textAlign = "left"; ctx.fillText(txt, x + 11, y + 19.5); ctx.globalAlpha = 1; } }
   if (S.pop && !S.pop.shown) {                               // what just happened and what it was worth: a short note at the top
     S.pop.shown = true; const t = $("toast"); t.style.borderColor = S.pop.colour;
     t.innerHTML = S.pop.lines.map((l, k) => (k ? `<span>${l}</span>` : `<b style="color:${S.pop.colour}">${l}</b>`)).join(""); t.style.display = "block";
@@ -658,7 +686,12 @@ addEventListener("keydown", (e) => {
   if (S.state === "video") { if (["Escape", "Enter", "Space"].includes(e.code)) endVideo(); return; }
   if (S.state === "cine") { if (["Escape", "Enter", "Space"].includes(e.code)) endCine(); return; }
   if (S.state === "intro") { if (e.code === "Escape") nextScene(true); else if (["Enter", "Space", "ArrowRight"].includes(e.code)) nextScene(); return; }
-  if (S.paused) { if (["KeyE", "Escape", "Enter"].includes(e.code)) closeComp(); return; }   // the ship computer is open
+  if (S.paused) { const v = $("compview"), tab = S.compTab || 0;                 // the ship computer is open
+    if (v && v.style.display === "flex") v.style.display = "none";
+    else if (["KeyE", "Escape", "Enter"].includes(e.code)) closeComp();
+    else if (/^Digit[1-4]$/.test(e.code)) openComp(+e.code.slice(-1) - 1);
+    else if (e.code === "ArrowRight") openComp((tab + 1) % 4); else if (e.code === "ArrowLeft") openComp((tab + 3) % 4);
+    return; }   // the ship computer is open
   if (e.code === "KeyH" && T) { const h = $("how"); h.style.display = h.style.display === "flex" ? "none" : "flex"; return; }
   if (S.state === "end" && e.code === "Enter") { S.state = "title"; $("debrief").style.display = "none"; $("title").style.display = "flex"; return; }
   if (S.state === "title" && T && /^(Digit[1-3]|Enter)$/.test(e.code)) return start(LEVELS[e.code === "Enter" ? 0 : +e.code.slice(-1) - 1]);
