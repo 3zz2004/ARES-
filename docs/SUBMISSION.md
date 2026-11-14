@@ -94,7 +94,7 @@ Where AI was used:
   identifiers.
 - **Not AI:** all terrain, slope, thermal, rover-track and photo data is NASA/USGS data. No data was generated or
   changed by AI. No AI model runs inside the game: ARES answers with computation and search. The opening music is a human-made track from Pixabay, not AI. All other sound is synthesised by
-  code. No AI audio or video was used: the demo video is rendered frame by frame by code from the running game, and
+  code. The demo video's narration is an AI voice (ElevenLabs), stated on the video page and in the file's metadata. No other AI audio or video was used: the demo video is rendered frame by frame by code from the running game, and
   carries a "GAME ART: AI-GENERATED" label on every frame.
 
 ## NASA Data
