@@ -446,6 +446,25 @@ function openComp(tab = S.compTab || 0) {
     else if (t) openComp(+t.dataset.tab);
     else if (f) { v.querySelector("img").src = f.dataset.src; v.lastElementChild.textContent = f.dataset.cap.replace(/&[a-z]+;/g, " "); v.style.display = "flex"; } };
 }
+// ---------- the first screen: the line types itself like a console, the numbers count to their real values ----------
+function gateFx() {
+  const G = $("gate"), big = G.querySelector(".gbig"), sub = G.querySelector(".gsub"), nums = [...G.querySelectorAll(".gstats b")], go = G.querySelector(".blink");
+  const A1 = "On Mars, the shortest way ", A2 = "can kill you.", SUB = sub.textContent.trim(), t0 = performance.now(), cur = '<i class="cur"></i>';
+  const out = (x) => 1 - (1 - Math.min(1, Math.max(0, x))) ** 3;
+  sub.textContent = ""; go.style.visibility = "hidden";
+  (function tick() {
+    if (S.state !== "gate") return;
+    const t = performance.now() - t0, n = Math.floor(t / 38), k = (d) => out((t - 1700 - d) / 1500);
+    big.innerHTML = A1.slice(0, n) + "<b>" + A2.slice(0, Math.max(0, n - A1.length)) + "</b>" + (t < 1900 ? cur : "");
+    nums[0].textContent = "−" + Math.round(15 * k(0)) + "%";
+    nums[1].textContent = "39 → " + Math.round(39 - 31 * k(300));
+    nums[2].textContent = "68% → " + Math.round(68 - 50 * k(600)) + "%";
+    const m = Math.floor((t - 4000) / 16);
+    if (m > 0) sub.innerHTML = "<u>&gt;</u> " + SUB.slice(0, m) + (m < SUB.length || Math.floor(t / 400) % 2 ? cur : "");
+    if (m > SUB.length) go.style.visibility = "visible";
+    requestAnimationFrame(tick);
+  })();
+}
 // ---------- main menu and settings ----------
 const SET = { labels: false, rover: true, start3d: false };
 try { Object.assign(SET, JSON.parse(localStorage.getItem("ares-settings") || "{}")); } catch { /* private mode */ }
@@ -893,7 +912,7 @@ loadBoard().then(async (t) => {
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
     T.art.style.cssText = `position:absolute;left:${-x * ART}px;top:${-y * ART}px`; document.body.append(T.art); return; }
   if (new URLSearchParams(location.search).has("intro")) { try { localStorage.removeItem("ares-seen-intro"); } catch { /* private mode */ } }   // ?intro shows the opening again
-  S.state = "gate"; $("gate").style.display = "flex";
+  S.state = "gate"; $("gate").style.display = "flex"; gateFx();
   for (const f of ["assets/intro.mp4", "assets/intro.webm"]) {   // is an intro video installed?
     try { const r = await fetch(f, { method: "HEAD" }); if (r.ok && (r.headers.get("content-type") || "").startsWith("video")) { S.video = f; break; } } catch { /* no video */ }
   }

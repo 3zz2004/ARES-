@@ -209,7 +209,10 @@
   #gate .gbig { font-size:2.7em; font-weight:700; line-height:1.2; margin:0 0 .7em; color:#fff; } #gate .gbig b { color:var(--bad); }
   #gate .gstats { display:flex; gap:1em; justify-content:center; flex-wrap:wrap; }
   #gate .gstats div { min-width:12em; padding:.8em 1.2em; border:1px solid #ffffff26; border-radius:.8em; background:#0006; animation:gup .7s ease-out both; }
-  #gate .gstats div:nth-child(2) { animation-delay:.25s; } #gate .gstats div:nth-child(3) { animation-delay:.5s; }
+  #gate .gstats div { animation-delay:1.6s; } #gate .gstats div:nth-child(2) { animation-delay:1.9s; } #gate .gstats div:nth-child(3) { animation-delay:2.2s; }
+  #gate .gbig { min-height:1.2em; } #gate .cur { display:inline-block; width:.5em; height:.95em; margin-left:.12em; vertical-align:-.1em; background:var(--o2); }
+  #gate .gsub { font-family:ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace !important; text-align:left; min-height:4.6em; font-size:1em !important; } #gate .gsub u { text-decoration:none; color:var(--o2); font-weight:700; }
+  @media (orientation:portrait) { #gate .gbig { min-height:2.4em; } #gate .gsub { min-height:7.6em; } }
   @keyframes gup { from { opacity:0; transform:translateY(1em); } }
   #gate .gstats b { display:block; font-size:2.3em; font-weight:700; line-height:1.2; color:var(--o2); white-space:nowrap; }
   #gate .gstats span { font-size:.9em; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); }
