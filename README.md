@@ -29,7 +29,10 @@ checks itself against the route the real rover drove.
   sandy ground can kill.
 - **HARD:** no line. You read the SLOPE and HEAT layers and plan the walk yourself.
 - **Oxygen tanks** refill 25% — but they lie on the hardest ground.
-- Each ship piece lies at a real place where Perseverance stopped. Reach it and you see the photo the rover took there.
+- At the rover's landing site each ship piece lies at a real place where Perseverance stopped. Reach it and you see the
+  photo the rover took there. At the unvisited sites you see NASA's close-up of that tile from orbit instead.
+- **Phones and tablets:** held upright, the map sits on top with touch buttons under it (arrows, ARES LEADS, MAP, LABELS,
+  COMPUTER). Everything on screen can be tapped.
 - Ask ARES with the buttons under his speech bubble, or type: `where?`, `tank?`, `air?`, `danger?`, `rover?`
 
 ## The science: how NASA data drives the game
@@ -61,7 +64,8 @@ heights exaggerated 3.5× so 46 m of real relief reads on screen). The rules, th
 only the camera does. Uses three.js (MIT licence, bundled in `game/lib`).
 
 **Sound and intro.** Sound effects and the in-game music are synthesised live in the browser (`game/audio.js`); the opening story is scored with "Epic Trailer" by nastelbom (Pixabay, not AI-generated); the opening cinematic is drawn
-live from the game's own art (`game/cine.js`). There are no audio or video files.
+live from the game's own art (`game/cine.js`) and plays on every visit, followed by a short recorded walk-through of the
+game (`game/assets/intro.mp4`, captured frame by frame from the running game). Both can be skipped.
 
 ## Landing sites: where the rover went, and where nothing has
 The menu offers four places for the ship to have come down (`tools/build_sites.py`, `game/data/sites.json`):
@@ -79,8 +83,13 @@ that THEMIS, at 100 m per pixel, reads as rock. The game says both.
 
 ## 3D cameras and the ship computer
 - **C** switches the 3D camera between first person (through the visor) and third person.
-- **E** at the wreck opens the ship computer: the images you have recovered, the four orbital maps, and this walk's
-  numbers. Oxygen pauses while it is open.
+- **E** at the wreck opens the ship computer, drawn as an old desktop with four folders: every NASA image of this site
+  (Navcam photos at the rover's site, HiRISE close-ups elsewhere), the four orbital maps, ground data measured live from
+  the layers, and this walk's numbers. Oxygen pauses while it is open. A marker on the wreck shows where it is.
+
+## Menu and settings
+The game opens on a main menu: PLAY, HOW IT WORKS, WATCH THE INTRO, THE STORY, SETTINGS, DATA & CREDITS. Settings are
+kept in the browser: sound, full screen, start in 3D, labels on the map, the rover's track, and a reset of best scores.
 
 ## How ARES answers
 ARES is not a language model. Every answer is either computed or retrieved, and each one names its source

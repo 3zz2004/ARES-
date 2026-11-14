@@ -1,4 +1,4 @@
-// The opening cinematic: ~33 seconds, drawn live from the game's own art (no video file needed).
+// The opening story: ~35 seconds, drawn live from the game's own art and timed to its score (assets/story.mp3).
 // Space -> the engine blows and three pieces tear away -> falling to Mars -> impact -> ARES wakes alone -> someone arrives -> title.
 import * as A from "./audio.js";
 

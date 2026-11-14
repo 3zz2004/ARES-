@@ -34,7 +34,9 @@ Source code: https://github.com/3zz2004/ARES-
 ship pieces and return before the oxygen runs out. Steep tiles and soft sand cost more oxygen; tiles steeper than 15°
 cannot be crossed; dangerous tiles carry a chance of an accident. Five map layers can be switched at any time: the
 game art, the real HiRISE photo, height, slope and night heat. A key switches between the 2D map and a 3D view of the
-same terrain, with third-person and first-person cameras.
+same terrain, with third-person and first-person cameras. At the wreck, a ship computer holds every NASA image of the
+site, the four orbital maps and ground data measured live from the layers. The game has a main menu with settings and
+works on phones and tablets with touch controls.
 
 **How it works.**
 - Data pipeline (Python, `tools/`): streams only the needed window of the HiRISE DTM by HTTP range requests, computes
