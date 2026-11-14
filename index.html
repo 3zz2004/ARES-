@@ -80,12 +80,8 @@
 
   /* ---- board overlays and screens: same clean type as the side panel ---- */
   #legend, #toast, #guide, .screen { font-family:"Chakra Petch", system-ui, sans-serif; }
-  #legend { display:none; position:absolute; left:2.5%; bottom:2.5%; width:44%; z-index:2; font-size:1.25em; line-height:1.3; }
-  #lrows { list-style:none; margin:.55em 0 0; padding:0; display:grid; gap:.5em; }
-  #lrows li { display:flex; gap:.65em; align-items:flex-start; }
-  #lrows i { flex:none; width:1.75em; height:1.75em; border-radius:50%; border:2px solid; display:grid; place-items:center; font-style:normal; font-weight:700; font-size:.82em; background:#12060dcc; }
-  #lrows b { display:block; font-size:.86em; font-weight:700; color:#fff; } #lrows div { font-size:.72em; color:var(--dim); line-height:1.35; }
-  #lstart { margin:.7em 0 0; text-align:center; font-size:.78em; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--warn); animation:blink 1.1s steps(2) infinite; }
+  #legend { display:none; position:absolute; left:0; right:0; bottom:2.2%; z-index:2; text-align:center; pointer-events:none; }
+  #lstart { display:inline-block; margin:0; padding:.45em 1.1em; border-radius:.5em; background:#12060de6; font-size:1em; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--warn); animation:blink 1.1s steps(2) infinite; }
   #toast { display:none; position:absolute; left:50%; top:12%; transform:translateX(-50%); z-index:4; padding:.6em 1.3em; border-radius:.8em; border:1.5px solid; background:#180b14f2; box-shadow:0 .5em 1.6em #000a; text-align:center; font-size:1.3em; line-height:1.35; white-space:nowrap; }
   #toast b { display:block; font-weight:700; letter-spacing:.06em; } #toast span { display:block; font-size:.72em; color:var(--ink); }
 
@@ -207,7 +203,7 @@
       <div><button id="watch" class="mini">&#9654; WATCH INTRO</button> <button id="replay" class="mini">? HOW TO PLAY</button></div>
       <div class="why"><b>WHAT YOU LEARN</b> How scientists read slope and night-heat maps to tell safe ground from deadly ground — and why a planned route saves oxygen and lives. Checked against the path NASA's Perseverance rover really drove.</div>
     </div>
-    <div id="legend" class="card"><span class="lab">What you are looking at</span><ol id="lrows"></ol><p id="lstart">Press any arrow key to start</p></div>
+    <div id="legend"><p id="lstart">Press any arrow key to start</p></div>
     <div id="toast"></div>
     <div id="guide"><b id="gstep"></b><span id="gtext"></span><button id="gskip">SKIP GUIDE</button></div>
     <div id="intro" class="screen">
