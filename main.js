@@ -195,7 +195,7 @@ function start(level = S.level ?? LEVELS[0]) {
     home: ["THE WRECK \u00b7 SHIP COMPUTER", "Bring the 3 pieces here. Press E here: NASA photos + data"] };
   S.tagAt = {};
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
-  S.showRover = true;
+  S.showRover = SET.rover;
   $("title").style.display = "none"; $("debrief").style.display = "none"; $("how").style.display = "none"; $("photo").style.display = "none"; $("log").textContent = ""; S.type = null;
   say("Friend! ARES was going home. Far star. Ship broke over this crater. Fell here.", "", 2);
   if (!site.visited) say(`No rover ever came here. The nearest track is ${site.far_m} metres away. No photos from the ground. Only eyes from orbit. We read them well.`, `unvisited = more than ${T.sites.unvisited_m} m from NASA's rover traverse`, 1);
@@ -204,7 +204,7 @@ function start(level = S.level ?? LEVELS[0]) {
   say("Blue tanks = spare air. They fell on bad ground. Steep or sandy ground can kill.", "", 0);
   if (I) say(level.line ? `Why follow my line? The short way crosses ${I.bad0} danger tiles. Mine crosses ${I.bad1}, and burns ${(I.save * 100).toFixed(0)}% less air. Data saves lives.`
     : `No line today. But know this: a planned way here burns ${(I.save * 100).toFixed(0)}% less air than the short way, and crosses ${I.bad1} danger tiles, not ${I.bad0}. Read the maps.`, "A* on real slope and night-heat data vs the shortest path", 0);
-  S.brief = performance.now() + 12000; S.tips = true; S.pop = null;   // open on the whole map with the legend showing
+  S.brief = performance.now() + 12000; S.tips = true; S.pop = null; if (SET.start3d !== !!S.mode3d && V3.ready()) toggle3d();   // open on the whole map with the legend showing
   suggest(["Where is the next piece?", "Why follow your route?", "How do you tell sand from rock?", "Why did the rover come here?"]);
   let guided = false; try { guided = !!localStorage.getItem("ares-guided"); } catch { /* private mode */ }
   if (!guided && level.line) startGuide(); else { S.guide = null; $("guide").style.display = "none"; }   // first game: ARES explains the controls
@@ -446,6 +446,31 @@ function openComp(tab = S.compTab || 0) {
     else if (t) openComp(+t.dataset.tab);
     else if (f) { v.querySelector("img").src = f.dataset.src; v.lastElementChild.textContent = f.dataset.cap.replace(/&[a-z]+;/g, " "); v.style.display = "flex"; } };
 }
+// ---------- main menu and settings ----------
+const SET = { labels: false, rover: true, start3d: false };
+try { Object.assign(SET, JSON.parse(localStorage.getItem("ares-settings") || "{}")); } catch { /* private mode */ }
+function paintLevels() { document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }
+  b.innerHTML = `<b><u>${+b.dataset.l + 1}</u>${L.name}</b><span>${L.about}</span>${best ? `<em>Your best score: ${best}</em>` : `<em class="none">Not played yet</em>`}`; }); }
+function paintSet() { const on = (id, v) => { const b = $(id); b.textContent = v ? "ON" : "OFF"; b.classList.toggle("on", !!v); };
+  on("set-sound", !A.isMuted()); on("set-full", !!document.fullscreenElement); on("set-3d", SET.start3d); on("set-labels", SET.labels); on("set-rover", SET.rover); }
+function menu(v) { S.menu = v; document.querySelectorAll("#title .mv").forEach((e) => e.classList.toggle("on", e.dataset.v === v)); if (v === "play") paintLevels(); if (v === "settings") { $("set-reset").textContent = "RESET"; paintSet(); } }
+$("title").addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.go) { b.blur(); A.unlock(); A.ui(); return menu(b.dataset.go); }
+  if (!b.id.startsWith("set-")) return;
+  b.blur(); A.unlock();
+  if (b.id === "set-sound") $("snd").textContent = A.toggleMute() ? "SOUND OFF" : "SOUND ON";
+  else if (b.id === "set-full") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); setTimeout(paintSet, 400); }
+  else if (b.id === "set-3d") SET.start3d = !SET.start3d; else if (b.id === "set-labels") SET.labels = !SET.labels; else if (b.id === "set-rover") SET.rover = !SET.rover;
+  else if (b.id === "set-reset") { try { Object.keys(localStorage).filter((k) => k.startsWith("ares-") && k !== "ares-settings").forEach((k) => localStorage.removeItem(k)); } catch { /* private mode */ } paintSet(); b.textContent = "DONE"; return; }
+  try { localStorage.setItem("ares-settings", JSON.stringify(SET)); } catch { /* private mode */ }
+  paintSet(); });
+// ---------- touch controls: each button is the key it stands for ----------
+{ const key = (type, code) => dispatchEvent(new KeyboardEvent(type, { code, bubbles: true }));
+  $("pad").addEventListener("pointerdown", (e) => { const b = e.target.closest("button"); if (!b) return; e.preventDefault(); A.unlock();
+    if (b.dataset.k === "KeyE" && !S.paused && S.cell !== S.home) return say("The ship computer is at the wreck. Walk back to it.", "", 0);
+    key("keydown", b.dataset.k); b.dataset.down = "1"; });
+  for (const t of ["pointerup", "pointercancel", "pointerleave"]) $("pad").addEventListener(t, (e) => { const b = e.target.closest("button"); if (b && b.dataset.down) { delete b.dataset.down; key("keyup", b.dataset.k); } }, true);
+  $("debrief").addEventListener("click", (e) => { if (S.state === "end" && !e.target.closest("button, a")) key("keydown", "Enter"); }); }
 $("hint").addEventListener("click", () => { if (S.state === "play" && !S.paused && S.cell === S.home) openComp(); });
 function closeComp() { S.paused = false; $("comp").style.display = "none"; document.querySelector("#board .aimark").style.display = ""; }
 
@@ -490,7 +515,7 @@ function draw(now) {
   if (S.jump) { const t = S.jump.t; ax = cx(S.jump.from) + (cx(S.jump.to) - cx(S.jump.from)) * t; ay = cy(S.jump.from) + (cy(S.jump.to) - cy(S.jump.from)) * t; lift = Math.sin(Math.PI * t) * 9; }
   // camera: zoomed in on the astronaut, or the whole board (M)
   const briefing = S.brief > now;                              // the opening briefing: whole map, with labels on it
-  if (S.brief && !briefing) { S.brief = 0; S.tips = false; }
+  if (S.brief && !briefing) { S.brief = 0; S.tips = SET.labels; }
   const zoomedNow = S.zoomed && !briefing;
   S.view += ((zoomedNow ? VIEW_TILES : T.cols) - S.view) * 0.1;
   const span = S.view * TILE, half = span / 2, clamp = (v) => Math.max(half, Math.min(BOARD - half, v));
@@ -609,9 +634,9 @@ function draw(now) {
   // ---- on the map: a named label beside each thing. Labels are placed so that none covers another label or another thing. ----
   const CW = $("c").width, scr = (bx, by, up = 0) => (d3 ? V3.project(bx, by, up) : [(bx - (clamp(S.camX) - half + qx)) * zoom, (by - (clamp(S.camY) - half + qy)) * zoom]);
   const mid = (i) => [cx(i) + 8, cy(i) + 8];
-  const TF = "700 16px 'Chakra Petch', sans-serif", SF = "500 14px 'Chakra Petch', sans-serif", tags = [];
+  const LS = Math.max(1, Math.min(2.1, 560 / ($("c").clientWidth || 960))), TF = `700 ${16 * LS}px 'Chakra Petch', sans-serif`, SF = `500 ${14 * LS}px 'Chakra Petch', sans-serif`, tags = [];
   const tag = (key, bx, by, colour, kind, withSub) => { const [px, py] = scr(bx, by, 18); if (px < 12 || py < 12 || px > CW - 12 || py > CW - 12) return;
-    tags.push({ key, px, py, colour, title: S.tags[kind][0], sub: withSub ? S.tags[kind][1] : "" }); };
+    tags.push({ key, px, py, colour, title: S.tags[kind][0], sub: withSub && LS < 1.3 ? S.tags[kind][1] : "" }); };
   $("hint").style.display = S.state === "play" && !S.paused && !S.jump && S.cell === S.home && !briefing ? "block" : "none";   // standing at the wreck: the computer is one key away
   $("legend").style.display = briefing && S.state === "play" ? "block" : "none";
   if (S.tips && S.state === "play") {
@@ -627,7 +652,7 @@ function draw(now) {
       || (x < ax + keep[1] && x + w > ax - keep[0] && y < ay + keep[3] && y + h > ay - keep[2]);   // and never on the astronaut or ARES
     for (const t of tags) {
       ctx.font = TF; const tw = ctx.measureText(t.title).width; ctx.font = SF; const sw = t.sub ? ctx.measureText(t.sub).width : 0;
-      const w = Math.ceil(Math.max(tw, sw)) + 24, h = t.sub ? 50 : 30, spots = [];
+      const w = Math.ceil(Math.max(tw, sw)) + 24 * LS, h = (t.sub ? 50 : 30) * LS, spots = [];
       for (const g of [20, 46, 78, 116]) { const d = g * 0.7;
         spots.push([t.px + g, t.py - h / 2], [t.px - g - w, t.py - h / 2], [t.px - w / 2, t.py - g - h], [t.px - w / 2, t.py + g],
           [t.px + d, t.py - d - h], [t.px + d, t.py + d], [t.px - d - w, t.py - d - h], [t.px - d - w, t.py + d]); }
@@ -639,17 +664,17 @@ function draw(now) {
       ctx.fillStyle = "#12060d"; ctx.beginPath(); ctx.arc(t.px, t.py, 5.5, 0, 7); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
       ctx.fillStyle = "#12060dea"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h); ctx.fill(); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
       ctx.fillStyle = t.colour; ctx.fillRect(x, y + 6, 3, h - 12);
-      ctx.textAlign = "left"; ctx.font = TF; ctx.fillStyle = t.colour; ctx.fillText(t.title, x + 13, y + 21);
-      if (t.sub) { ctx.font = SF; ctx.fillStyle = "#ecdccd"; ctx.fillText(t.sub, x + 13, y + 40); }
+      ctx.textAlign = "left"; ctx.font = TF; ctx.fillStyle = t.colour; ctx.fillText(t.title, x + 13 * LS, y + 21 * LS);
+      if (t.sub) { ctx.font = SF; ctx.fillStyle = "#ecdccd"; ctx.fillText(t.sub, x + 13 * LS, y + 40 * LS); }
     }
   }
   if (S.state === "play" && !S.tips && S.cell !== S.home) {      // labels off: the wreck still shows where the computer is
     const [hx, hy] = scr(...mid(S.home), 18), txt = "SHIP COMPUTER \u00b7 PRESS E HERE", lift = zoomedNow ? (d3 ? 170 : 92) : 30;
-    ctx.font = "700 15px 'Chakra Petch', sans-serif"; const w = ctx.measureText(txt).width + 22, x = Math.max(8, Math.min(CW - 8 - w, hx - w / 2)), y = hy - lift - 28;
+    ctx.font = `700 ${15 * LS}px 'Chakra Petch', sans-serif`; const ph = 28 * LS, w = ctx.measureText(txt).width + 22 * LS, x = Math.max(8, Math.min(CW - 8 - w, hx - w / 2)), y = hy - lift - ph;
     if (hx > 0 && hx < CW && y > 8 && hy < CW) { ctx.globalAlpha = 0.72 + 0.28 * Math.sin(now / 280);
-      ctx.fillStyle = "#12060df0"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, 28, 6); else ctx.rect(x, y, w, 28); ctx.fill(); ctx.strokeStyle = "#4ff0d0"; ctx.lineWidth = 2; ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(hx - 6, y + 28); ctx.lineTo(hx, y + 36); ctx.lineTo(hx + 6, y + 28); ctx.fillStyle = "#4ff0d0"; ctx.fill();
-      ctx.textAlign = "left"; ctx.fillText(txt, x + 11, y + 19.5); ctx.globalAlpha = 1; } }
+      ctx.fillStyle = "#12060df0"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, ph, 6); else ctx.rect(x, y, w, ph); ctx.fill(); ctx.strokeStyle = "#4ff0d0"; ctx.lineWidth = 2; ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(hx - 6, y + ph); ctx.lineTo(hx, y + ph + 8); ctx.lineTo(hx + 6, y + ph); ctx.fillStyle = "#4ff0d0"; ctx.fill();
+      ctx.textAlign = "left"; ctx.fillText(txt, x + 11 * LS, y + ph * 0.7); ctx.globalAlpha = 1; } }
   if (S.pop && !S.pop.shown) {                               // what just happened and what it was worth: a short note at the top
     S.pop.shown = true; const t = $("toast"); t.style.borderColor = S.pop.colour;
     t.innerHTML = S.pop.lines.map((l, k) => (k ? `<span>${l}</span>` : `<b style="color:${S.pop.colour}">${l}</b>`)).join(""); t.style.display = "block";
@@ -692,9 +717,14 @@ addEventListener("keydown", (e) => {
     else if (/^Digit[1-4]$/.test(e.code)) openComp(+e.code.slice(-1) - 1);
     else if (e.code === "ArrowRight") openComp((tab + 1) % 4); else if (e.code === "ArrowLeft") openComp((tab + 3) % 4);
     return; }   // the ship computer is open
+  if (e.code === "KeyH" && T && S.state === "title") return menu(S.menu === "how" ? "main" : "how");
   if (e.code === "KeyH" && T) { const h = $("how"); h.style.display = h.style.display === "flex" ? "none" : "flex"; return; }
   if (S.state === "end" && e.code === "Enter") { S.state = "title"; $("debrief").style.display = "none"; $("title").style.display = "flex"; return; }
-  if (S.state === "title" && T && /^(Digit[1-3]|Enter)$/.test(e.code)) return start(LEVELS[e.code === "Enter" ? 0 : +e.code.slice(-1) - 1]);
+  if (S.state === "title" && T) {                             // the main menu: ESC goes back, ENTER goes on, 1-3 pick a level
+    if (e.code === "Escape") return menu("main");
+    if (S.menu !== "play") { if (e.code === "Enter") menu("play"); return; }
+    if (/^(Digit[1-3]|Enter)$/.test(e.code)) return start(LEVELS[e.code === "Enter" ? 0 : +e.code.slice(-1) - 1]);
+    return; }
   if ($("photo").style.display === "block" && MOVE.includes(e.code)) $("photo").style.display = "none";
   if (S.state !== "play") return;
   if (/^Digit[1-5]$/.test(e.code)) setLayer(+e.code.slice(-1));
@@ -857,8 +887,7 @@ loadBoard().then(async (t) => {
   $("sites").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b) { b.blur(); A.unlock(); A.ui(); pickSite(+b.dataset.s); } });
   pickSite(0);
   $("levels").addEventListener("click", (e) => { const b = e.target.closest("button"); if (b && S.state === "title") { b.blur(); start(LEVELS[+b.dataset.l]); } });
-  document.querySelectorAll("#levels button").forEach((b) => { const L = LEVELS[+b.dataset.l]; let best = 0; try { best = +localStorage.getItem("ares-best-" + L.name) || 0; } catch { /* private mode */ }
-    b.innerHTML = `<b><u>${+b.dataset.l + 1}</u>${L.name}</b><span>${L.about}</span>${best ? `<em>Your best score: ${best}</em>` : `<em class="none">Not played yet</em>`}`; });
+  paintLevels(); $("mhow").innerHTML = $("how").innerHTML.replace(/<p class="blink">[^<]*<\/p>/, "");
   window.__game = { S, T, cost, step: update, reply, draw };    // for debugging and tests: step(ms) advances the game, draw(now) paints a frame
   const crop = new URLSearchParams(location.search).get("crop");   // ?crop=x,y : show the painted board 1:1 from that tile (art review)
   if (crop) { const [x, y] = crop.split(",").map(Number); document.body.innerHTML = ""; document.body.style.overflow = "hidden";
