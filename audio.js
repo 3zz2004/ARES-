@@ -49,6 +49,26 @@ export const win = () => { [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i)
 const VOICE = [[523, 659, 784], [392, 330, 262], [659, 784, 1047, 1319], [262, 196, 147, 98]];
 export const ares = (mood = 0) => VOICE[mood].forEach((f, i) => tone(f, 0.075, { type: "square", gain: 0.1, at: i * 0.07 }));   // ARES speaks in tones
 
+// ---- the opening cinematic ----
+export const boom = (big = 1) => { tone(90, 1.6 * big, { type: "sine", gain: 0.9, to: 28 }); noise(1.4 * big, { freq: 1400, gain: 0.8, to: 60 }); noise(0.25, { filter: "highpass", freq: 3000, gain: 0.3 }); };
+export function roar(dur = 4) {               // falling through the air: a noise that grows until the ground
+  if (!ac) return;
+  const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain(), t = ac.currentTime;
+  s.buffer = noiseBuf; s.loop = true; f.type = "lowpass"; f.frequency.setValueAtTime(180, t); f.frequency.exponentialRampToValueAtTime(2600, t + dur);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.7, t + dur); g.gain.linearRampToValueAtTime(0, t + dur + 0.05);
+  s.connect(f).connect(g).connect(sfx); s.start(t); s.stop(t + dur + 0.1);
+  tone(55, dur, { type: "sawtooth", gain: 0.14, to: 150, attack: dur * 0.85 });
+}
+export const engine = (dur = 5) => { tone(72, dur, { type: "sawtooth", gain: 0.07, to: 66, attack: 0.8 }); tone(144, dur, { type: "sine", gain: 0.05, attack: 0.8 }); };
+export const powerdown = () => tone(320, 1.5, { type: "sawtooth", gain: 0.2, to: 30 });
+export const alarm = () => { tone(880, 0.16, { type: "square", gain: 0.09 }); tone(660, 0.22, { type: "square", gain: 0.09, at: 0.18 }); };
+export const spark = () => { noise(0.06, { filter: "highpass", freq: 4000, gain: 0.3 }); noise(0.05, { filter: "highpass", freq: 5200, gain: 0.2, at: 0.09 }); };
+export const riser = (dur = 1.5) => tone(110, dur, { type: "sawtooth", gain: 0.13, to: 880, attack: dur * 0.9 });
+export const hit = () => { tone(55, 2.2, { type: "sine", gain: 0.8, to: 36 }); [110, 165, 220, 277].forEach((f) => tone(f, 2.4, { type: "triangle", gain: 0.11, attack: 0.02 })); };
+export function hush(sec = 5) {               // cut whatever effects are still ringing (the cinematic was skipped)
+  if (!ac) return; const t = ac.currentTime; sfx.gain.cancelScheduledValues(t); sfx.gain.setTargetAtTime(0, t, 0.03); sfx.gain.setTargetAtTime(0.55, t + sec, 0.2);
+}
+
 // ---- music: a slow, lonely pad, a few plucked notes, and the wind ----
 const CHORDS = [[110, 164.8, 220, 261.6], [87.3, 130.8, 174.6, 220], [73.4, 110, 146.8, 174.6], [82.4, 123.5, 164.8, 196]];   // Am  F  Dm  Em
 const PLUCK = [440, 523.3, 587.3, 659.3, 784, 880];

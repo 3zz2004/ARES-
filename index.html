@@ -201,12 +201,29 @@
     #gate, #video, #cine { font-size:clamp(9px, 2.6vw, 14px); } #gate { padding:0 5vw; }
     .aimark { font-size:clamp(8px, 1.9vw, 10px); }
   }
+  /* ---- the first screen: the point of the whole thing, in one line and three numbers ---- */
+  #gate { padding:0 5vw; line-height:1.6; }
+  #gate h1 { font-size:4.2em; } #gate h2 { margin:.5em 0 1em; }
+  #gate .gkick, #gate .gbig, #gate .gstats, #gate .gsub { font-family:"Chakra Petch", system-ui, sans-serif; }
+  #gate .gkick { font-size:.95em; font-weight:600; letter-spacing:.28em; color:var(--dim); margin-bottom:1.6em; }
+  #gate .gbig { font-size:2.7em; font-weight:700; line-height:1.2; margin:0 0 .7em; color:#fff; } #gate .gbig b { color:var(--bad); }
+  #gate .gstats { display:flex; gap:1em; justify-content:center; flex-wrap:wrap; }
+  #gate .gstats div { min-width:12em; padding:.8em 1.2em; border:1px solid #ffffff26; border-radius:.8em; background:#0006; animation:gup .7s ease-out both; }
+  #gate .gstats div:nth-child(2) { animation-delay:.25s; } #gate .gstats div:nth-child(3) { animation-delay:.5s; }
+  @keyframes gup { from { opacity:0; transform:translateY(1em); } }
+  #gate .gstats b { display:block; font-size:2.3em; font-weight:700; line-height:1.2; color:var(--o2); white-space:nowrap; }
+  #gate .gstats span { font-size:.9em; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); }
+  #gate .gsub { max-width:46em; font-size:1.1em; line-height:1.5; color:var(--ink); margin:1.2em auto 1.6em; }
 </style>
 </head>
 <body>
 <!-- full-window layers: outside #stage so they cover the whole screen -->
-<div id="gate"><h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2>
-  <div class="why"><b>WHY IT MATTERS</b><br>The first people on Mars will walk with a limited tank of oxygen. A route planned from real terrain data is the difference between a good day and an emergency. ARES lets anyone feel that — on NASA's own map of Jezero Crater.</div>
+<div id="gate">
+  <div class="gkick">NASA SPACE APPS 2026 &nbsp;&middot;&nbsp; BUILT ON REAL NASA DATA OF JEZERO CRATER</div>
+  <h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2>
+  <p class="gbig">On Mars, the shortest way <b>can kill you.</b></p>
+  <div class="gstats"><div><b>&minus;15%</b><span>oxygen used</span></div><div><b>39 &rarr; 8</b><span>dangerous tiles crossed</span></div><div><b>68% &rarr; 18%</b><span>chance of an accident</span></div></div>
+  <p class="gsub">That is what a route planned on NASA's slope and night-heat maps saves, against the shortest walk at Perseverance's landing site. The real rover's own track agrees with it.</p>
   <p class="blink">CLICK OR PRESS ANY KEY</p><small>Sound on for the full experience</small></div>
 <div id="video"><video id="vid" playsinline></video><button id="vskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>
 <div id="cine"><canvas id="cv" width="1280" height="720"></canvas><div class="aimark">AI-generated art</div><button id="cskip" class="skip">SKIP THE INTRO &#9654;&#9654;</button></div>

@@ -709,7 +709,7 @@ addEventListener("keydown", (e) => {
   if (S.state === "gate") return openGate();
   if (e.code === "KeyF") { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen?.().catch(() => {}); return; }
   if (S.state === "video") { if (["Escape", "Enter", "Space"].includes(e.code)) endVideo(); return; }
-  if (S.state === "cine") { if (["Escape", "Enter", "Space"].includes(e.code)) endCine(); return; }
+  if (S.state === "cine") { if (["Escape", "Enter", "Space"].includes(e.code)) endCine(true); return; }
   if (S.state === "intro") { if (e.code === "Escape") nextScene(true); else if (["Enter", "Space", "ArrowRight"].includes(e.code)) nextScene(); return; }
   if (S.paused) { const v = $("compview"), tab = S.compTab || 0;                 // the ship computer is open
     if (v && v.style.display === "flex") v.style.display = "none";
@@ -805,17 +805,17 @@ const seenIntro = () => { try { return !!localStorage.getItem("ares-seen-intro")
 function openGate() {
   A.unlock(); A.ui(); $("gate").style.display = "none";
   document.documentElement.requestFullscreen?.().catch(() => {});   // fill the screen (F toggles it)
-  if (seenIntro()) { S.state = "title"; return; }
-  if (S.video) playVideo(); else playCine();
+  playCine();                                                 // every visit opens with the story
 }
 function playCine() { S.state = "cine"; $("title").style.display = "none"; $("cine").style.display = "block"; startCine(S); }
-function endCine() {
+function endCine(skipped) {                  // the story ran to its end: the walk-through follows. Skipped: straight to the menu.
   $("cine").style.display = "none";
   try { localStorage.setItem("ares-seen-intro", "1"); } catch { /* private mode */ }
+  if (skipped === true) A.hush(); else if (S.video) return playVideo();
   S.state = "title"; $("title").style.display = "flex";
 }
-$("cskip").addEventListener("click", endCine);
-$("watch").addEventListener("click", (e) => { e.target.blur(); if (S.video) playVideo(); else playCine(); });
+$("cskip").addEventListener("click", () => endCine(true));
+$("watch").addEventListener("click", (e) => { e.target.blur(); A.unlock(); playCine(); });
 function playVideo() {
   S.state = "video"; const v = $("vid"); $("video").style.display = "block"; v.src = S.video; v.currentTime = 0;
   v.play().catch(() => endVideo());
