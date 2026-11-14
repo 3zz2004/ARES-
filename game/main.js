@@ -187,12 +187,13 @@ function start(level = S.level ?? LEVELS[0]) {
     <div><b>&minus;${(I.save * 100).toFixed(0)}%</b><span>oxygen used</span></div>
     <div><b><s>${I.bad0} &rarr;</s> ${I.bad1}</b><span>danger tiles</span></div>
     <div><b><s>${(I.odds0 * 100).toFixed(0)}% &rarr;</s> ${(I.odds1 * 100).toFixed(0)}%</b><span>accident odds</span></div></div>` : "";
-  const row = (n, colour, title, text) => `<li><i style="border-color:${colour};color:${colour}">${n}</i><div><b>${title}</b>${text}</div></li>`;
-  $("lrows").innerHTML = (level.line ? row(1, "#39e66b", "ARES's route", I ? `Planned with A* on NASA's slope and heat data. ${(I.save * 100).toFixed(0)}% less oxygen than the shortest way.` : "Planned with A* on NASA's slope and heat data.") : "")
-    + row(2, "#ffffff", "Perseverance's real drive", "Where NASA's rover actually went. It kept to gentle ground too.")
-    + row(3, "#ffcf4a", "Ship piece (+100)", site.visited ? "Lies at a real rover stop. You get the photo NASA took there." : "On ground no rover has reached. You get NASA's close-up from orbit.")
-    + row(4, "#4ff0d0", "Air tank (+25% oxygen)", "On steep or sandy ground. Worth the risk?")
-    + row(5, "#ff7a59", "The wreck", "Bring all three pieces back before the air runs out.");
+  S.tags = {                                                  // the words written on the map itself (I shows and hides them)
+    route: ["ARES'S ROUTE", I ? `A* on NASA slope + heat data \u00b7 ${(I.save * 100).toFixed(0)}% less oxygen` : "A* on NASA slope + heat data"],
+    rover: ["PERSEVERANCE'S REAL DRIVE", "Where NASA's rover actually went"],
+    part: ["SHIP PIECE  +100", site.visited ? "At a real rover stop" : "Ground no rover has reached"],
+    tank: ["AIR TANK  +25% OXYGEN", "On steep or sandy ground"],
+    home: ["THE WRECK", "Bring all 3 pieces back here"] };
+  S.tagAt = {};
   if (!level.line) { S.route = null; S.onRoute = new Set(); }   // HARD: ARES gives no line; the layers are your only guide
   S.showRover = true;
   $("title").style.display = "none"; $("debrief").style.display = "none"; $("how").style.display = "none"; $("photo").style.display = "none"; $("log").textContent = ""; S.type = null;
@@ -584,21 +585,42 @@ function draw(now) {
       ctx.fillStyle = S.float.good ? "#4ff0d0" : S.float.off ? "#ff5a6e" : "#ffffff"; ctx.fillText(S.float.text, tx, ty); }
   }
   ctx.setTransform(1, 0, 0, 1, 0, 0);
-  // ---- on the map: small numbered markers only. What each number means is in the legend card (I toggles both). ----
+  // ---- on the map: a named label beside each thing. Labels are placed so that none covers another label or another thing. ----
   const CW = $("c").width, scr = (bx, by, up = 0) => (d3 ? V3.project(bx, by, up) : [(bx - (clamp(S.camX) - half + qx)) * zoom, (by - (clamp(S.camY) - half + qy)) * zoom]);
   const mid = (i) => [cx(i) + 8, cy(i) + 8];
-  const badge = (bx, by, n, colour) => { const [px, py] = scr(bx, by, 18); if (px < 16 || py < 16 || px > CW - 16 || py > CW - 16) return;
-    ctx.fillStyle = "#12060dee"; ctx.beginPath(); ctx.arc(px, py, 13, 0, 7); ctx.fill(); ctx.strokeStyle = colour; ctx.lineWidth = 2.5; ctx.stroke();
-    ctx.font = "700 15px 'Chakra Petch', sans-serif"; ctx.textAlign = "center"; ctx.fillStyle = colour; ctx.fillText(n, px, py + 5.5); };
+  const TF = "700 16px 'Chakra Petch', sans-serif", SF = "500 14px 'Chakra Petch', sans-serif", tags = [];
+  const tag = (key, bx, by, colour, kind, withSub) => { const [px, py] = scr(bx, by, 18); if (px < 12 || py < 12 || px > CW - 12 || py > CW - 12) return;
+    tags.push({ key, px, py, colour, title: S.tags[kind][0], sub: withSub ? S.tags[kind][1] : "" }); };
   $("hint").style.display = S.state === "play" && !S.paused && !S.jump && S.cell === S.home && !briefing ? "block" : "none";   // standing at the wreck: the computer is one key away
-  $("legend").style.display = S.tips && S.state === "play" && $("photo").style.display !== "block" ? "block" : "none";
-  $("lstart").style.display = briefing ? "block" : "none";
-  if (S.tips) {
-    if (S.route) badge(...mid(S.route.path[Math.min(S.route.path.length - 1, S.ri + Math.max(3, (S.route.path.length - S.ri) >> 3))]), 1, "#39e66b");
-    if (S.showRover) { const P = T.rover.path, q = P[(P.length * 0.72) | 0]; badge(q[0] * TILE, q[1] * TILE, 2, "#ffffff"); }
-    for (const part of S.parts) if (!part.done) badge(...mid(part.cell), 3, "#ffcf4a");
-    for (const tank of S.tanks) if (!tank.done) badge(...mid(tank.cell), 4, "#4ff0d0");
-    badge(...mid(S.home), 5, "#ff7a59");
+  $("legend").style.display = briefing && S.state === "play" ? "block" : "none";
+  if (S.tips && S.state === "play") {
+    if (!(zoomedNow && S.cell === S.home)) tag("home", ...mid(S.home), "#ff7a59", "home", true);   // standing on it: no need to name it
+    if (S.route) tag("route", ...mid(S.route.path[Math.min(S.route.path.length - 1, S.ri + Math.max(3, (S.route.path.length - S.ri) >> 3))]), "#39e66b", "route", true);
+    if (S.showRover) { const P = T.rover.path, q = P[(P.length * 0.72) | 0]; tag("rover", q[0] * TILE, q[1] * TILE, "#ffffff", "rover", true); }
+    S.parts.forEach((part, k) => { if (!part.done) tag("p" + k, ...mid(part.cell), "#ffcf4a", "part", !tags.some((t) => t.key[0] === "p")); });
+    S.tanks.forEach((tank, k) => { if (!tank.done) tag("t" + k, ...mid(tank.cell), "#4ff0d0", "tank", !tags.some((t) => t.key[0] === "t")); });
+    const [ax, ay] = scr(...mid(S.cell), 18), placed = [], floor = briefing ? CW - 64 : CW - 8, keep = d3 && zoomedNow ? [250, 150, 250, 120] : zoomedNow ? [120, 80, 95, 40] : [26, 26, 44, 20];
+    const hits = (x, y, w, h, me) => x < 8 || y < 8 || x + w > CW - 8 || y + h > floor
+      || placed.some((b) => x < b.x + b.w + 8 && x + w + 8 > b.x && y < b.y + b.h + 8 && y + h + 8 > b.y)
+      || tags.some((t) => t !== me && x < t.px + 16 && x + w > t.px - 16 && y < t.py + 16 && y + h > t.py - 16)
+      || (x < ax + keep[1] && x + w > ax - keep[0] && y < ay + keep[3] && y + h > ay - keep[2]);   // and never on the astronaut or ARES
+    for (const t of tags) {
+      ctx.font = TF; const tw = ctx.measureText(t.title).width; ctx.font = SF; const sw = t.sub ? ctx.measureText(t.sub).width : 0;
+      const w = Math.ceil(Math.max(tw, sw)) + 24, h = t.sub ? 50 : 30, spots = [];
+      for (const g of [20, 46, 78, 116]) { const d = g * 0.7;
+        spots.push([t.px + g, t.py - h / 2], [t.px - g - w, t.py - h / 2], [t.px - w / 2, t.py - g - h], [t.px - w / 2, t.py + g],
+          [t.px + d, t.py - d - h], [t.px + d, t.py + d], [t.px - d - w, t.py - d - h], [t.px - d - w, t.py + d]); }
+      const was = S.tagAt[t.key]; let n = was !== undefined && !hits(spots[was][0], spots[was][1], w, h, t) ? was : spots.findIndex(([x, y]) => !hits(x, y, w, h, t));
+      if (n < 0) continue;                                    // no free place: better no label than one on top of another
+      S.tagAt[t.key] = n; const [x, y] = spots[n]; placed.push({ x, y, w, h });
+      const ex = Math.max(x, Math.min(x + w, t.px)), ey = Math.max(y, Math.min(y + h, t.py));
+      ctx.strokeStyle = t.colour; ctx.lineWidth = 2; ctx.globalAlpha = 0.85; ctx.beginPath(); ctx.moveTo(t.px, t.py); ctx.lineTo(ex, ey); ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = "#12060d"; ctx.beginPath(); ctx.arc(t.px, t.py, 5.5, 0, 7); ctx.fill(); ctx.lineWidth = 2.5; ctx.stroke();
+      ctx.fillStyle = "#12060dea"; ctx.beginPath(); if (ctx.roundRect) ctx.roundRect(x, y, w, h, 7); else ctx.rect(x, y, w, h); ctx.fill(); ctx.lineWidth = 1.5; ctx.globalAlpha = 0.7; ctx.stroke(); ctx.globalAlpha = 1;
+      ctx.fillStyle = t.colour; ctx.fillRect(x, y + 6, 3, h - 12);
+      ctx.textAlign = "left"; ctx.font = TF; ctx.fillStyle = t.colour; ctx.fillText(t.title, x + 13, y + 21);
+      if (t.sub) { ctx.font = SF; ctx.fillStyle = "#ecdccd"; ctx.fillText(t.sub, x + 13, y + 40); }
+    }
   }
   if (S.pop && !S.pop.shown) {                               // what just happened and what it was worth: a short note at the top
     S.pop.shown = true; const t = $("toast"); t.style.borderColor = S.pop.colour;

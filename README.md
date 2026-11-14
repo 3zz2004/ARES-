@@ -23,7 +23,7 @@ checks itself against the route the real rover drove.
 | F / N | Full screen / sound on-off |
 | C | 3D camera: first person / third person |
 | E | Ship computer (when standing on the wreck); the mission can be ended from there |
-| I | Show / hide the numbered legend on the map |
+| I | Show / hide the labels on the map |
 
 - **EASY / NORMAL:** the green line is the cheapest, safest route. Off it, each jump burns 40% more oxygen, and steep or
   sandy ground can kill.
