@@ -148,7 +148,7 @@ function placeTanks(avoid) {                // spare canisters land on the harde
 
 const LEVELS = [
   { name: "EASY", line: true, margin: 1.7, bonus: 1, shuffle: false, about: "Green line shown. Plenty of oxygen." },
-  { name: "NORMAL", line: true, margin: 1.4, bonus: 1.5, shuffle: true, about: "Green line shown. Tight oxygen. Pieces move each run." },
+  { name: "NORMAL", line: true, margin: 1.4, bonus: 1.5, shuffle: true, about: "Green line shown. Tight oxygen. At the rover's site the pieces move each run." },
   { name: "HARD", line: false, margin: 1.5, bonus: 2.5, shuffle: true, about: "No line. Read SLOPE and HEAT yourself." },
 ];
 // What the orbiters can tell about the ground you are standing on (true statements, picked by the tile's real data).
@@ -833,7 +833,7 @@ function drawIntro(now) {
 $("inext").addEventListener("click", () => nextScene()); $("iskip").addEventListener("click", () => nextScene(true)); $("replay").addEventListener("click", (e) => { e.target.blur(); showIntro(); });
 
 // ---------- opening: a start gate (browsers need a click before sound), then the intro video if one is installed ----------
-// Drop a file at game/assets/intro.mp4 (or .webm) and it plays full-screen on a first visit, with a big SKIP button.
+// Drop a file at game/assets/intro.mp4 (or .webm) and it plays full-screen after the opening story, with a SKIP button.
 const seenIntro = () => { try { return !!localStorage.getItem("ares-seen-intro"); } catch { return false; } };
 function openGate() {
   A.unlock(); A.ui(); $("gate").style.display = "none";
@@ -917,7 +917,7 @@ loadBoard().then(async (t) => {
     <tr><td>Rover tiles on sand</td><td>${R.rover_sand_pct}% (board: ${R.board_sand_pct}%)</td></tr>
     <tr><td>Our terrain model vs rover elevations</td><td>&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops</td></tr></table>
     <small>WHO IT IS FOR: students learning how scientists read a planet from orbit; anyone curious how a Marswalk is planned.<br>
-    KEYS: arrows jump · SPACE follow the line · V 2D/3D · M whole map · P rover path · 1-5 layers · F full screen · N sound · E end at the ship<br>
+    KEYS: arrows jump · SPACE follow the line · V 2D/3D · M whole map · P rover path · 1-5 layers · F full screen · N sound · I labels · C 3D camera · E ship computer at the wreck<br>
     The story, the oxygen tank, the accident chances and the dust devil are game design, not measurements.<br>The limit and the weights in the cost are our choices. Art was made with AI tools; all terrain data is NASA / USGS.</small>
     <p class="blink">H = CLOSE</p>`;
   // landing-site picker: the rover's own site, or ground no rover has reached
