@@ -9,7 +9,7 @@ NASA Space Apps asks teams to say clearly where and how AI tools were used. This
 | **Characters, ground textures, rocks, objects** (`game/assets/astro.png`, `ares.png`, `tex/`, `props/`, `items/`; originals in `art_src/`) | Yes. Generated with ChatGPT (OpenAI) image generation from prompts written by the team, then cut up and placed by our own code. | A visible **"AI-GENERATED ART"** label on screen wherever they appear; a banner on every sheet in `art_src/`; a text chunk in each PNG's metadata. |
 | **Terrain, slopes, night heat, the PHOTO layer, the rover's path, the photos at each ship piece** | No. NASA / USGS data, fetched by `tools/`. | Sources are named in the game and in the README. |
 | **ARES's answers** | No language model. Tools compute on the data; a written knowledge base is searched (`game/ares.js`). | Each answer shows its source. |
-| **Sound and the opening cinematic** | No AI generation. Sound is synthesised by code in the browser; the cinematic is drawn by code from the art above. | The cinematic carries the "AI-GENERATED ART" label because it shows that art. |
+| **Sound and the opening cinematic** | No AI generation. Sound effects are synthesised by code in the browser; the music of the opening story is a recorded track by a human composer ("Interstellar" by QuentinGaming, from Pixabay), not AI-generated; the cinematic is drawn by code from the art above. | The cinematic carries the "AI-GENERATED ART" label because it shows that art. |
 
 **NASA branding.** The image generator drew a NASA wordmark on the rover and a NASA flag. Generated content may not
 carry NASA branding, so the wordmark was painted out and the flag removed (`tools/mark_ai_art.py`); neither appears in

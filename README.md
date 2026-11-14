@@ -60,7 +60,7 @@ the terrain model, ledges where the ground really drops. Press PHOTO to compare 
 heights exaggerated 3.5× so 46 m of real relief reads on screen). The rules, the route and the oxygen do not change —
 only the camera does. Uses three.js (MIT licence, bundled in `game/lib`).
 
-**Sound and intro.** All sound is synthesised live in the browser (`game/audio.js`); the opening cinematic is drawn
+**Sound and intro.** Sound effects and the in-game music are synthesised live in the browser (`game/audio.js`); the opening story is scored with "Interstellar" by QuentinGaming (Pixabay, not AI-generated); the opening cinematic is drawn
 live from the game's own art (`game/cine.js`). There are no audio or video files.
 
 ## Landing sites: where the rover went, and where nothing has
