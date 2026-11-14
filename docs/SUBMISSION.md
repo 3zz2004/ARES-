@@ -60,7 +60,7 @@ its 93 tiles is over our 15° limit; and our terrain heights match the rover's o
 85 stops. The real mission chose the same kind of ground our planner chooses.
 
 **Benefits and impact.** Future crews will walk on Mars with a fixed amount of air. The shortest line on a map is
-often not the cheapest or the safest. ARES makes that visible and playable for students and the public: it teaches
+often not the cheapest or the safest. ARES makes that visible and playable for children and students, from about age 10, and for the public: it teaches
 slope, thermal inertia and path planning through real mission data, and shows in numbers what a good route saves. The
 same method works for any place on Mars that has a terrain model.
 

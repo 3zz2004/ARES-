@@ -46,8 +46,8 @@
   <div class="meta">
     <b>Team</b><span>Alexstra</span>
     <b>Challenge</b><span>Interplanetary Survival Guide: Martian Map</span>
-    <b>Play it</b><span><a href="https://3zz2004.github.io/ARES-/">https://3zz2004.github.io/ARES-/</a></span>
-    <b>Demo (29 s video)</b><span><a href="https://3zz2004.github.io/ARES-/demo/video.html">https://3zz2004.github.io/ARES-/demo/video.html</a></span>
+    <b>Live project</b><span><a href="https://3zz2004.github.io/ARES-/"><b>https://3zz2004.github.io/ARES-/</b></a> &nbsp;(public, plays in the browser, nothing to install)</span>
+    <b>Demo video (29 s)</b><span><a href="https://3zz2004.github.io/ARES-/demo/video.html">https://3zz2004.github.io/ARES-/demo/video.html</a></span>
     <b>Source code</b><span><a href="https://github.com/3zz2004/ARES-">https://github.com/3zz2004/ARES-</a></span>
   </div>
 
@@ -95,12 +95,15 @@
 <p>The first people to walk on Mars will do it with a fixed amount of air. On foot, in a heavy suit, a slope or a patch of loose sand is not an inconvenience. It costs oxygen, and it can end the walk. The shortest line between two points on a picture of the ground says nothing about either.</p>
 <p>The data that does say it already exists. NASA has mapped Jezero Crater from orbit down to one metre per pixel, measured how fast its ground cools at night, and driven a rover across it. But the existing tools, such as Mars Trek and the USGS geologic maps, are regional viewers made for specialists. The challenge names the gap: a <b>hyper-local, layered view of one route</b> that an astronaut could actually use.</p>
 <p><b>Our question:</b> can one small piece of Mars be turned into something anyone can read well enough to choose a route that keeps them alive?</p>
-<h3>Who benefits</h3>
-<ul>
-  <li><b>Students and the public.</b> Slope, thermal inertia and path planning are abstract in a lecture. Here they decide whether you get home. The player uses the same data products a mission team uses.</li>
-  <li><b>Teachers and outreach teams.</b> It runs in any browser, on a phone, with nothing to install and no account.</li>
-  <li><b>Anyone designing an astronaut-facing map.</b> The project is a working example of how to turn orbital products into one hazard number per step, how to check that number against a real traverse, and how to show the result to a person who is not a geologist.</li>
-</ul>
+<h3>Who it is for, and what each gets</h3>
+<table>
+<tr><th style="width:24%">For whom</th><th style="width:38%">What they get from it</th><th>What in the project is made for them</th></tr>
+<tr><td><b>Children and school students</b><br>from about age 10</td><td>A first meeting with real space data, as play. They learn that a map can show more than a picture: how steep the ground is, and whether it is rock or sand, and that these decide whether you get home.</td><td>A story with a character to help. One rule to start with: follow the green line. Short sentences, big buttons, touch controls, no reading of numbers needed on EASY. ARES explains the ground in plain words as you step on it.</td></tr>
+<tr><td><b>Older students and the public</b></td><td>The actual skill: reading a slope map and a thermal map to plan a traverse, with the same data products a mission team uses.</td><td>The five switchable layers, HARD level with no route, the ship computer with the measured ground data, and the rover's real track to compare against.</td></tr>
+<tr><td><b>Teachers, museums, outreach teams</b></td><td>A ready activity of about fifteen minutes that needs no preparation.</td><td>Runs in any browser, on a phone, with nothing to install and no account. A "How it works" page with the sources and the formula.</td></tr>
+<tr><td><b>People designing astronaut-facing maps</b></td><td>A working example of the whole chain.</td><td>How to turn orbital products into one hazard number per step, how to check it against a real traverse, and how to show it to someone who is not a geologist.</td></tr>
+</table>
+<p>The first row is the one the look of the project is built around: pixel art, a companion, a rescue. The data underneath is the same for every row. A child and a graduate student walk the same ground with the same numbers; they just use different amounts of what is on the screen.</p>
 </section>
 
 <!-- ======================= 2 ======================= -->
@@ -428,7 +431,7 @@
   <li>The same build was deployed to a second host and passed the same checks.</li>
   <li>Layouts were checked in screenshots at desktop (1366 × 768), tablet (820 × 1180) and phone (500 × 1000) sizes.</li>
 </ul>
-<div class="note"><b>What we did not test.</b> The checks above were run in desktop browsers, including at phone and tablet sizes. We did not run a formal test on a range of real phones, and we did not run a study with students. Both are in section 14.</div>
+<div class="note"><b>What we did not test.</b> The checks above were run in desktop browsers, including at phone and tablet sizes. We did not run a formal test on a range of real phones, and we have not yet put the game in front of children or a class to measure what they learn. The game is in English only. All three are in section 14.</div>
 </section>
 
 <!-- ======================= 11 ======================= -->
@@ -510,7 +513,7 @@
   <li><b>More places.</b> Gale Crater with Curiosity's track as ground truth, and candidate human landing zones.</li>
   <li><b>More layers.</b> Mineral maps (CRISM) as science targets, and measured surface radiation where a dataset exists for the site.</li>
   <li><b>A calibrated model.</b> Replace our weights with published figures on the metabolic cost of walking on slopes in a suit.</li>
-  <li><b>A classroom mode.</b> A teacher's sheet, Arabic and English, and a study of what students actually learn from it.</li>
+  <li><b>Children and classrooms.</b> Arabic alongside English, a teacher's sheet, sessions with children from age 10 and with school classes, and a measure of what they actually learn from it.</li>
   <li><b>Device testing.</b> A proper pass on real phones and tablets.</li>
   <li><b>A free-roam mode.</b> Explore the crater without the story.</li>
 </ul>

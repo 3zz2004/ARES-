@@ -921,7 +921,7 @@ loadBoard().then(async (t) => {
     <tr><td>Rover tiles over our ${SLOPE_LIMIT}&deg; limit</td><td>${R.rover_over_limit} of ${R.rover_tiles}</td></tr>
     <tr><td>Rover tiles on sand</td><td>${R.rover_sand_pct}% (board: ${R.board_sand_pct}%)</td></tr>
     <tr><td>Our terrain model vs rover elevations</td><td>&plusmn;${R.dem_vs_rover_elev_std_m} m at ${R.waypoints} stops</td></tr></table>
-    <small>WHO IT IS FOR: students learning how scientists read a planet from orbit; anyone curious how a Marswalk is planned.<br>
+    <small>WHO IT IS FOR: children and students, from about age 10, meeting real space data for the first time; anyone curious how a walk on Mars is planned.<br>
     KEYS: arrows jump · SPACE follow the line · V 2D/3D · M whole map · P rover path · 1-5 layers · F full screen · N sound · I labels · C 3D camera · E ship computer at the wreck<br>
     The story, the oxygen tank, the accident chances and the dust devil are game design, not measurements.<br>The limit and the weights in the cost are our choices. Art was made with AI tools; all terrain data is NASA / USGS.</small>
     <p class="blink">H = CLOSE</p>`;
