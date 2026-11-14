@@ -5,7 +5,9 @@ Deadline (Cairo): **Saturday 14 November 2026, 1:00 PM**. Only the team leader s
 ---
 
 ## Project Name
-ARES — The Mars Survival Map
+ARES
+
+(Tagline, for the summary line if the form has one: The Mars Survival Map)
 
 ## High-Level Project Summary
 ARES is a browser game that teaches how to read a map of Mars in order to stay alive on it. You are an astronaut on

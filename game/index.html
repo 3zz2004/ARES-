@@ -217,17 +217,27 @@
   #gate .gstats b { display:block; font-size:2.3em; font-weight:700; line-height:1.2; color:var(--o2); white-space:nowrap; }
   #gate .gstats span { font-size:.9em; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--dim); }
   #gate .gsub { width:min(46em, 100%); max-width:46em; font-size:1.1em; line-height:1.5; color:var(--ink); margin:1.2em auto 1.6em; }
-  /* ---- shown while the data and the art download ---- */
-  #boot { position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:1.4em; background:radial-gradient(circle at 50% 40%, #3a1626, #120810 75%); font-size:clamp(9px, 1.1vw, 15px); text-align:center; padding:0 6vw; }
-  #boot h1 { font-size:4.2em; margin:0; font-weight:normal; color:var(--warn); text-shadow:.1em .1em 0 var(--k); }
-  #boot p { margin:0; font-family:"Chakra Petch", system-ui, sans-serif; font-size:1.25em; letter-spacing:.08em; color:var(--dim); }
-  #boot .bar { width:min(22em, 70vw); height:.5em; border-radius:1em; background:#0009; overflow:hidden; } #boot .bar i { display:block; height:100%; width:4%; border-radius:1em; background:var(--o2); transition:width .25s; }
-  @media (orientation:portrait) { #boot { font-size:clamp(10px, 2.8vw, 15px); } }
+  /* ---- the loader: the name, and a power bar that fills as the data and the art arrive ---- */
+  #boot { position:fixed; inset:0; z-index:60; display:flex; flex-direction:column; align-items:center; justify-content:center; background:radial-gradient(circle at 50% 42%, #3a1626, #120810 72%); font-size:clamp(9px, 1.1vw, 15px); text-align:center; padding:0 6vw; transition:opacity .45s; }
+  #boot.out { opacity:0; pointer-events:none; }
+  #boot h1 { font-size:5.6em; margin:0; font-weight:normal; letter-spacing:.08em; color:var(--warn); text-shadow:.09em .09em 0 var(--k), 0 0 .9em #ff7a5955; animation:bootglow 2.2s ease-in-out infinite; }
+  @keyframes bootglow { 50% { text-shadow:.09em .09em 0 var(--k), 0 0 1.5em #ffcf4a88; } }
+  #boot h2 { margin:1.1em 0 2.6em; font-family:"Chakra Petch", system-ui, sans-serif; font-size:1.05em; font-weight:600; letter-spacing:.42em; color:var(--o2); }
+  #boot .pw { width:min(30em, 78vw); font-family:"Chakra Petch", system-ui, sans-serif; }
+  #boot .pwtop { display:flex; justify-content:space-between; align-items:baseline; font-size:.95em; font-weight:700; letter-spacing:.2em; color:var(--dim); margin-bottom:.55em; } #boot .pwtop b { color:var(--o2); font-size:1.25em; letter-spacing:.06em; }
+  #boot .bar { position:relative; height:1.15em; padding:.18em; border:2px solid #4ff0d066; border-radius:.35em; background:#0009; box-shadow:0 0 1.4em #4ff0d022; }
+  #boot .bar::after { content:""; position:absolute; right:-.55em; top:28%; width:.3em; height:44%; border-radius:0 .2em .2em 0; background:#4ff0d066; }   /* the nub of a battery */
+  #boot .bar i { display:block; height:100%; width:3%; border-radius:.15em; background:repeating-linear-gradient(90deg, var(--o2) 0 .55em, transparent .55em .75em); transition:width .3s ease-out; box-shadow:0 0 .8em #4ff0d088; }
+  #boot p { margin:1.1em 0 0; font-family:ui-monospace, Consolas, "Courier New", monospace; font-size:.92em; letter-spacing:.06em; color:var(--dim); min-height:1.4em; }
+  #boot p::before { content:"> "; color:var(--o2); }
+  @media (orientation:portrait) { #boot { font-size:clamp(10px, 2.9vw, 15px); } }
 </style>
 </head>
 <body>
 <!-- full-window layers: outside #stage so they cover the whole screen -->
-<div id="boot"><h1>ARES</h1><p>Loading NASA's map of Jezero Crater&hellip;</p><div class="bar"><i></i></div></div>
+<div id="boot"><h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2>
+  <div class="pw"><div class="pwtop"><span>POWER</span><b id="bootpct">0%</b></div><div class="bar"><i></i></div></div>
+  <p id="bootmsg">Starting up</p></div>
 <div id="gate">
   <div class="gkick">NASA SPACE APPS 2026 &nbsp;&middot;&nbsp; BUILT ON REAL NASA DATA OF JEZERO CRATER</div>
   <h1>ARES</h1><h2>THE MARS SURVIVAL MAP</h2>
