@@ -2,8 +2,6 @@
 
 Deadline (Cairo): **Saturday 14 November 2026, 1:00 PM**. Only the team leader submits. All links must open without login.
 
-Things to fill in before pasting are marked `[[ ... ]]`.
-
 ---
 
 ## Project Name
@@ -73,7 +71,7 @@ with NumPy, SciPy and Pillow for the data tools; Git and GitHub Pages for hostin
 Yes, AI tools were used, as follows.
 - **Code:** written with an AI coding assistant (Claude, by Anthropic), directed, reviewed and tested by the team.
   This is stated in the README, in `AI_DISCLOSURE.md`, and in a comment and metadata tag in the game's HTML.
-- **Images:** the characters, ground textures, rocks and objects were generated with [[ name of the AI image tool ]]
+- **Images:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation
   from prompts written by the team, then cut and placed by our own code. Every one is marked as AI-generated: a visible
   "AI-GENERATED ART" label on the game screen and in the opening cinematic, a visible banner on every source sheet in
   `art_src/`, and a text note in each PNG's metadata. No generated image contains NASA logos, flags or mission
@@ -102,7 +100,7 @@ Yes, AI tools were used, as follows.
 - Fonts: Chakra Petch and Press Start 2P (SIL Open Font License), from Google Fonts.
 - Python libraries: NumPy, SciPy, Pillow, pypdf.
 - Claude, by Anthropic — AI coding assistant.
-- [[ name of the AI image tool ]] — AI image generation for the game art.
+- ChatGPT, by OpenAI — AI image generation for the game art.
 - GitHub Pages — hosting.
 - Hart, Nilsson, Raphael (1968), "A Formal Basis for the Heuristic Determination of Minimum Cost Paths" — the A*
   algorithm.

@@ -136,7 +136,7 @@ Requires Python 3 with `numpy`, `Pillow` and `scipy`. `build_rover.py` expects `
 
 ## Use of AI
 - **Code:** written with an AI coding assistant (Claude, by Anthropic) under the team's direction.
-- **Art:** the characters, ground textures, rocks and objects were generated with AI image tools from the team's prompts,
+- **Art:** the characters, ground textures, rocks and objects were generated with ChatGPT (OpenAI) image generation from the team's prompts,
   then cut and placed by our own code. Every AI image is marked: an "AI-GENERATED ART" label on screen, a banner on
   each sheet in `art_src/`, and a note in each PNG's metadata (`tools/mark_ai_art.py`). No NASA logo or flag appears in
   any generated image. Full list: [AI_DISCLOSURE.md](AI_DISCLOSURE.md).
